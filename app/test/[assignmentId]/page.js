@@ -283,11 +283,12 @@ export default function TestPage() {
 
     // Reading
     if (task_type === 'c_test') {
-      const blanks = blanks_data ? (typeof blanks_data === 'string' ? JSON.parse(blanks_data) : blanks_data) : [];
+      const customInstruction = (options && options.length > 0 && options[0]) ? options[0] : 'Fill in the missing letters in the paragraph.';
       return (
         <CTestRenderer
+          qId={qId}
           passage={prompt}
-          blanks={blanks}
+          instruction={customInstruction}
           answers={answers}
           onAnswer={(blankId, val) => setAnswers(prev => ({ ...prev, [blankId]: val }))}
           questionRange={[questionIdx + 1, Math.min(questionIdx + 10, questions.length)]}
@@ -295,13 +296,20 @@ export default function TestPage() {
         />
       );
     }
-    if (task_type === 'read_daily_life') {
+    if (task_type === 'read_daily_life' || task_type === 'read_academic') {
       const sec = getSectionData(section);
-      return <ReadDailyLifeRenderer passage={sec?.reading_passage} question={prompt} options={options} selected={selected} onSelect={onSelect} questionNumber={questionIdx + 1} totalQuestions={questions.length} />;
-    }
-    if (task_type === 'read_academic') {
-      const sec = getSectionData(section);
-      return <ReadAcademicRenderer passage={sec?.reading_passage} question={prompt} options={options} selected={selected} onSelect={onSelect} questionNumber={questionIdx + 1} totalQuestions={questions.length} />;
+      let passages = [];
+      try { passages = sec?.reading_passage ? JSON.parse(sec.reading_passage) : []; }
+      catch (e) { passages = [sec?.reading_passage || '']; }
+      if (!Array.isArray(passages)) passages = [passages];
+      
+      const passageIdx = parseInt(group_id || '0', 10);
+      const passageText = passages[passageIdx] || passages[0] || '';
+
+      if (task_type === 'read_daily_life') {
+        return <ReadDailyLifeRenderer passage={passageText} question={prompt} options={options} selected={selected} onSelect={onSelect} questionNumber={questionIdx + 1} totalQuestions={questions.length} />;
+      }
+      return <ReadAcademicRenderer passage={passageText} question={prompt} options={options} selected={selected} onSelect={onSelect} questionNumber={questionIdx + 1} totalQuestions={questions.length} />;
     }
 
     // Listening

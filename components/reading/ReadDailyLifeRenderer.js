@@ -8,35 +8,24 @@
 export default function ReadDailyLifeRenderer({ passage = '', question, options = [], selected, onSelect, questionNumber, totalQuestions }) {
   return (
     <div className="split-layout">
-      {/* Left — phone/document mockup */}
+      {/* Left — generic document/notice mockup */}
       <div className="split-pane split-pane--left">
-        <div className="split-pane__label">Reading Passage</div>
+        <div className="split-pane__label">Reading Document</div>
 
-        {/* Phone mockup container */}
+        {/* Generic Document Container */}
         <div style={{
-          border: '3px solid #1f2937',
-          borderRadius: 20,
-          overflow: 'hidden',
-          maxWidth: 340,
-          margin: '0 auto',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+          background: '#fff',
+          border: '1px solid #e5e7eb',
+          borderRadius: 8,
+          padding: '32px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+          width: '100%',
+          minHeight: 400,
+          overflowX: 'auto',
+          color: '#1f2937'
         }}>
-          {/* Phone notch */}
-          <div style={{ background: '#1f2937', padding: '10px 0', display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: 60, height: 6, background: '#374151', borderRadius: 3 }} />
-          </div>
-          {/* Phone screen */}
-          <div style={{ background: '#fff', padding: '20px 18px', minHeight: 400 }}>
-            {/* Simulated app bar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #f3f4f6' }}>
-              <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ color: '#fff', fontSize: 14 }}>✉</span>
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>Mail</div>
-            </div>
-            <div className="passage-text" style={{ fontSize: 13 }}>
-              {passage || 'Sample daily life reading passage will appear here.'}
-            </div>
+          <div className="passage-text" style={{ fontSize: 14, whiteSpace: 'pre-wrap' }}>
+            {passage || 'Sample daily life reading passage will appear here (e.g. schedule, flyer, email, or announcement).'}
           </div>
         </div>
       </div>

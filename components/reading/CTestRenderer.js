@@ -15,19 +15,19 @@
  *   questionRange: [start, end] — for counter display
  *   totalScored: number
  */
-export default function CTestRenderer({ passage = '', blanks = [], answers = {}, onAnswer, questionRange = [1, 10], totalScored = 20 }) {
-  // Split passage into parts — text nodes and blank nodes
-  const parts = parsePassage(passage, blanks);
+export default function CTestRenderer({ qId, passage = '', instruction, answers = {}, onAnswer, questionRange = [1, 10], totalScored = 20 }) {
+  // Split passage into parts — text nodes and blank nodes based on {{answer}}
+  const parts = parsePassage(passage);
 
   return (
     <div style={{ padding: '28px 32px', maxWidth: 800, margin: '0 auto' }}>
-      <div className="split-pane__label" style={{ marginBottom: 20 }}>
-        Questions {questionRange[0]}–{questionRange[1]} of {totalScored}
-      </div>
-
-      <div style={{ marginBottom: 16, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-        <strong>Directions:</strong> Read the following text. Some words have had their endings removed. 
-        Type the missing letters or word parts in each blank to complete the word.
+      <div style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#000', margin: '0 0 4px 0', letterSpacing: '-0.02em', whiteSpace: 'pre-wrap' }}>
+          {instruction || 'Fill in the missing letters in the paragraph.'}
+        </h2>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#000', margin: 0, letterSpacing: '-0.02em' }}>
+          (Questions {questionRange[0]}-{questionRange[1]})
+        </h2>
       </div>
 
       <div className="ctest-text">
@@ -35,16 +35,16 @@ export default function CTestRenderer({ passage = '', blanks = [], answers = {},
           if (part.type === 'text') {
             return <span key={i}>{part.content}</span>;
           }
-          const blankId = part.blank.id;
-          const val = answers[blankId] ?? '';
+          const blankKey = `${qId}_${part.blank.id}`;
+          const val = answers[blankKey] ?? '';
           return (
             <input
               key={i}
               type="text"
               className={`ctest-blank ${val ? 'filled' : ''}`}
               value={val}
-              onChange={e => onAnswer(blankId, e.target.value)}
-              style={{ width: Math.max(60, (part.blank.answer?.length ?? 4) * 12) + 'px' }}
+              onChange={e => onAnswer(blankKey, e.target.value)}
+              style={{ width: Math.max(60, (part.blank.len ?? 4) * 12) + 'px' }}
               aria-label={`Blank ${i + 1}`}
               autoCapitalize="off"
               autoCorrect="off"
@@ -61,22 +61,29 @@ export default function CTestRenderer({ passage = '', blanks = [], answers = {},
   );
 }
 
-function parsePassage(passage, blanks) {
-  if (!blanks || blanks.length === 0) return [{ type: 'text', content: passage }];
-
-  // Build sorted positions
-  const sorted = [...blanks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+function parsePassage(passage) {
+  if (!passage) return [];
+  const regex = /\{\{([^}]+)\}\}/g;
   const parts = [];
   let cursor = 0;
+  let match;
+  let blankIndex = 0;
 
-  for (const blank of sorted) {
-    const pos = blank.position ?? 0;
-    const len = blank.blank_length ?? 5; // characters replaced
-    if (pos > cursor) {
-      parts.push({ type: 'text', content: passage.slice(cursor, pos) });
+  while ((match = regex.exec(passage)) !== null) {
+    const start = match.index;
+    const answerStr = match[1];
+
+    if (start > cursor) {
+      parts.push({ type: 'text', content: passage.slice(cursor, start) });
     }
-    parts.push({ type: 'blank', blank });
-    cursor = pos + len;
+
+    parts.push({ 
+      type: 'blank', 
+      blank: { id: `b${blankIndex}`, answer: answerStr, len: answerStr.length } 
+    });
+
+    blankIndex++;
+    cursor = regex.lastIndex;
   }
 
   if (cursor < passage.length) {

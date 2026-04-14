@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 const TASK_TYPES = {
   reading: [
     { value: 'c_test', label: 'C-Test (Inline Blanks)' },
-    { value: 'read_daily_life', label: 'Read in Daily Life (Phone Mockup)' },
+    { value: 'read_daily_life', label: 'Read in Daily Life (Document/Flyer/Email)' },
     { value: 'read_academic', label: 'Read an Academic Passage' },
   ],
   listening: [
@@ -58,6 +58,7 @@ function emptySection(type) {
     section_type: type,
     has_mst: type === 'reading' || type === 'listening',
     module1_threshold: type === 'reading' ? 13 : 11,
+    reading_passage: '',
     order_index: SECTION_ORDER.indexOf(type),
     questions: [emptyQuestion(type)],
   };
@@ -122,6 +123,7 @@ export default function EditTestPage() {
                   prompt: q.prompt || '',
                   options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : ['', '', '', ''],
                   correct_answer: q.correct_answer || '',
+                  blanks_data: q.blanks_data ? (typeof q.blanks_data === 'string' ? JSON.parse(q.blanks_data) : q.blanks_data) : [],
                   audio_url: q.audio_url || '',
                   speaker_photo_url: q.speaker_photo_url || '',
                   group_audio_url: q.group_audio_url || '',
@@ -185,6 +187,23 @@ export default function EditTestPage() {
     }));
   }
 
+  function moveQuestion(sIdx, qIdx, direction) {
+    setSections(prev => prev.map((s, i) => {
+      if (i !== sIdx) return s;
+      const newQuestions = [...s.questions];
+      if (direction === -1 && qIdx > 0) {
+        const temp = newQuestions[qIdx - 1];
+        newQuestions[qIdx - 1] = newQuestions[qIdx];
+        newQuestions[qIdx] = temp;
+      } else if (direction === 1 && qIdx < newQuestions.length - 1) {
+        const temp = newQuestions[qIdx + 1];
+        newQuestions[qIdx + 1] = newQuestions[qIdx];
+        newQuestions[qIdx] = temp;
+      }
+      return { ...s, questions: newQuestions };
+    }));
+  }
+
   async function handleSave() {
     if (!title.trim()) { setError('Please enter a test title.'); return; }
     setSaving(true);
@@ -235,6 +254,7 @@ export default function EditTestPage() {
               prompt: q.prompt.trim(),
               options: options?.length ? options : null,
               correct_answer: q.correct_answer.trim() || null,
+              blanks_data: null,
               audio_url: q.audio_url.trim() || null,
               speaker_photo_url: q.speaker_photo_url.trim() || null,
               group_audio_url: q.group_audio_url.trim() || null,
@@ -335,16 +355,42 @@ export default function EditTestPage() {
             </label>
           )}
           {sec.section_type === 'reading' && (
-             <div style={{ flex: 1 }}>
-               <label className="label" htmlFor="reading-passage">Optional Global Reading Passage</label>
-               <textarea
-                 id="reading-passage"
-                 className="input"
-                 rows={4}
-                 value={sec.reading_passage || ''}
-                 onChange={e => updateSection(activeSection, 'reading_passage', e.target.value)}
-                 placeholder="Enter the main passage here if multiple questions use it..."
-               />
+             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+               <label className="label">Reading Passages</label>
+               {(() => {
+                 let passages = [];
+                 try { passages = sec.reading_passage ? JSON.parse(sec.reading_passage) : ['']; }
+                 catch(e) { passages = [sec.reading_passage || '']; }
+                 if (!Array.isArray(passages)) passages = [passages];
+                 
+                 return passages.map((p, i) => (
+                   <div key={i} style={{ display: 'flex', gap: 8 }}>
+                     <textarea
+                       className="input"
+                       rows={4}
+                       value={p}
+                       onChange={e => {
+                         const newP = [...passages];
+                         newP[i] = e.target.value;
+                         updateSection(activeSection, 'reading_passage', JSON.stringify(newP));
+                       }}
+                       placeholder={`Passage ${i + 1} text...`}
+                     />
+                     {passages.length > 1 && (
+                       <button className="btn btn--sm" style={{ alignSelf: 'flex-start', background: 'var(--danger-bg)', color: 'var(--danger)' }} 
+                         onClick={() => {
+                           const newP = passages.filter((_, idx) => idx !== i);
+                           updateSection(activeSection, 'reading_passage', JSON.stringify(newP));
+                         }}>✕</button>
+                     )}
+                   </div>
+                 )).concat(
+                   <button key="add" className="btn btn--sm btn--outline" style={{ alignSelf: 'flex-start' }}
+                     onClick={() => {
+                       updateSection(activeSection, 'reading_passage', JSON.stringify([...passages, '']));
+                     }}>+ Add Passage</button>
+                 );
+               })()}
              </div>
           )}
         </div>
@@ -357,9 +403,14 @@ export default function EditTestPage() {
               q={q}
               qIdx={qIdx}
               sectionType={sec.section_type}
+              sec={sec}
               onChange={(field, value) => updateQuestion(activeSection, qIdx, field, value)}
               onOptionChange={(optIdx, value) => updateOption(activeSection, qIdx, optIdx, value)}
               onRemove={() => removeQuestion(activeSection, qIdx)}
+              onMoveUp={() => moveQuestion(activeSection, qIdx, -1)}
+              onMoveDown={() => moveQuestion(activeSection, qIdx, 1)}
+              isFirst={qIdx === 0}
+              isLast={qIdx === sec.questions.length - 1}
             />
           ))}
         </div>
@@ -376,16 +427,17 @@ export default function EditTestPage() {
   );
 }
 
-function QuestionEditor({ q, qIdx, sectionType, onChange, onOptionChange, onRemove }) {
+function QuestionEditor({ q, qIdx, sectionType, sec, onChange, onOptionChange, onRemove, onMoveUp, onMoveDown, isFirst, isLast }) {
   const [collapsed, setCollapsed] = useState(false);
   const taskTypes = TASK_TYPES[sectionType] ?? [];
-  const showOptions = ['c_test', 'read_daily_life', 'read_academic', 'listen_choose_response',
+  const showOptions = ['read_daily_life', 'read_academic', 'listen_choose_response',
     'listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(q.task_type);
   const showAudio = ['listen_choose_response', 'listen_conversation', 'listen_announcement',
     'listen_academic_talk', 'listen_repeat'].includes(q.task_type);
   const showSpeakerPhoto = ['listen_conversation', 'listen_announcement', 'listen_academic_talk', 'take_interview'].includes(q.task_type);
   const showGroupAudio = ['listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(q.task_type);
   const showTiles = q.task_type === 'build_sentence';
+  const showCTestBlanks = q.task_type === 'c_test';
 
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
@@ -402,11 +454,25 @@ function QuestionEditor({ q, qIdx, sectionType, onChange, onOptionChange, onRemo
           {q.is_scored ? 'Scored' : 'Unscored'}
         </span>
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{collapsed ? '▼' : '▲'}</span>
-        <button
-          className="btn btn--sm"
-          style={{ background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid #fca5a5', padding: '3px 10px' }}
-          onClick={e => { e.stopPropagation(); onRemove(); }}
-        >✕</button>
+        <div style={{ display: 'flex', gap: 4, marginLeft: 8 }} onClick={e => e.stopPropagation()}>
+          <button
+            className="btn btn--sm"
+            style={{ padding: '3px 8px', fontSize: 13, opacity: isFirst ? 0.3 : 1 }}
+            disabled={isFirst}
+            onClick={onMoveUp}
+          >↑</button>
+          <button
+            className="btn btn--sm"
+            style={{ padding: '3px 8px', fontSize: 13, opacity: isLast ? 0.3 : 1 }}
+            disabled={isLast}
+            onClick={onMoveDown}
+          >↓</button>
+          <button
+            className="btn btn--sm"
+            style={{ background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid #fca5a5', padding: '3px 10px', marginLeft: 4 }}
+            onClick={onRemove}
+          >✕</button>
+        </div>
       </div>
 
       {!collapsed && (
@@ -434,19 +500,64 @@ function QuestionEditor({ q, qIdx, sectionType, onChange, onOptionChange, onRemo
             </div>
           </div>
 
+          {/* Reading Passage Notice & Selection */}
+          {(q.task_type === 'read_daily_life' || q.task_type === 'read_academic') && (
+            <div style={{ padding: '14px', background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 6, fontSize: 13, color: 'var(--text-secondary)' }}>
+              <label className="label" style={{ marginBottom: 8 }}>Select Reading Passage</label>
+              <select className="input" value={q.group_id || '0'} onChange={e => onChange('group_id', e.target.value)} style={{ width: '100%', maxWidth: 300 }}>
+                {(() => {
+                   let passages = [];
+                   try { passages = sec.reading_passage ? JSON.parse(sec.reading_passage) : ['']; }
+                   catch(e) { passages = [sec.reading_passage || '']; }
+                   if (!Array.isArray(passages)) passages = [passages];
+                   return passages.map((_, i) => <option key={i} value={i.toString()}>Passage {i + 1}</option>);
+                })()}
+              </select>
+              <p style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
+                This is the passage the student will read for this question. You can edit the passages at the top of the Reading Section configuration.
+              </p>
+            </div>
+          )}
+
+          {/* Custom Instruction (C-Test only) */}
+          {q.task_type === 'c_test' && (
+            <div>
+              <label className="label" htmlFor={`inst-${q._id}`}>Custom Instructions</label>
+              <input
+                id={`inst-${q._id}`}
+                className="input"
+                value={(q.options ?? [''])[0] ?? ''}
+                onChange={e => {
+                  const opts = [...(q.options ?? [''])];
+                  opts[0] = e.target.value;
+                  onChange('options', opts);
+                }}
+                placeholder="e.g. Fill in the missing letters in the paragraph."
+              />
+            </div>
+          )}
+
           {/* Prompt */}
           <div>
             <label className="label" htmlFor={`prompt-${q._id}`}>
-              {q.task_type === 'listen_repeat' ? 'Sentence to Repeat' : 'Question / Prompt'}
+              {q.task_type === 'listen_repeat' ? 'Sentence to Repeat' : 
+               q.task_type === 'c_test' ? 'C-Test Passage Text' :
+               'Question / Prompt'}
             </label>
             <textarea
               id={`prompt-${q._id}`}
               className="input"
-              rows={3}
+              rows={q.task_type === 'c_test' ? 6 : 3}
               value={q.prompt}
               onChange={e => onChange('prompt', e.target.value)}
-              placeholder="Enter question text, passage, or instruction…"
+              placeholder={q.task_type === 'c_test' ? 'Enter passage and use {{brackets}} for blanks. e.g. The quick br{{own}} fox...' : 'Enter question text, passage, or instruction…'}
             />
+            {q.task_type === 'c_test' && (
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
+                <strong>How to create blanks:</strong> Wrap the missing part of the word in double curly brackets. 
+                For example, typing <code>pas{`{{sage}}`}</code> will display <code>pas____</code> to the student, and evaluate "sage" as the correct answer. Each bracket set represents one scored blank.
+              </p>
+            )}
           </div>
 
           {/* MCQ Options */}
