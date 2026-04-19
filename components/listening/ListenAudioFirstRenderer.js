@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import RadioOptionList from '@/components/shared/RadioOptionList';
 
 /**
  * Shared audio-first renderer for:
@@ -172,27 +173,14 @@ export default function ListenAudioFirstRenderer({
       </p>
 
       {/* MCQ options */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {(options.length ? options : ['Option A', 'Option B', 'Option C', 'Option D'])
-          .slice(0, 4)
-          .map((opt, i) => {
-            const letter = String.fromCharCode(65 + i);
-            return (
-              <button
-                key={letter}
-                className={`mcq-option ${selected === letter ? 'selected' : ''}`}
-                onClick={() => onSelect(letter)}
-              >
-                <span className="mcq-option__letter">{letter}</span>
-                <span>{opt}</span>
-              </button>
-            );
-          })}
-      </div>
+      <RadioOptionList
+        options={(options.length ? options : ['Option A', 'Option B', 'Option C', 'Option D']).slice(0, 4)}
+        selected={selected}
+        onSelect={onSelect}
+        gap={18}
+        fontSize={15}
+      />
 
-      <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-        Note: You can only hear this audio once. The Back button is not available in the Listening section.
-      </p>
     </div>
   );
 }

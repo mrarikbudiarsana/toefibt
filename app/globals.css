@@ -385,35 +385,63 @@ textarea.input { resize: vertical; min-height: 120px; }
   color: var(--text-primary);
 }
 
+.passage-hl {
+  background: #d1d5db; /* Gray highlight like ETS screenshots */
+  color: #111;
+  padding: 0 4px;
+  border-radius: 2px;
+  font-weight: inherit;
+}
+
 /* ============================================================
    C-TEST INLINE BLANKS
    ============================================================ */
 .ctest-text {
   font-family: var(--font-test);
-  font-size: 15px;
-  line-height: 2.2;
+  font-size: 16px;
+  line-height: 2.35;
   color: var(--text-primary);
 }
 
 .ctest-blank {
   display: inline-block;
-  border-bottom: 2px solid var(--teal);
-  min-width: 80px;
-  padding: 0 4px;
-  font-family: var(--font);
+  box-sizing: border-box;
+  border: none;
+  border-radius: 2px;
+  min-width: 0;
+  height: 1.7em;
+  padding: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 14px;
-  color: var(--text-primary);
-  background: transparent;
+  line-height: 1.55em;
+  color: #111;
+  background: #d9d9d9;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(var(--ctest-slot-width) - 12px),
+    #8d8d8d calc(var(--ctest-slot-width) - 12px),
+    #8d8d8d calc(var(--ctest-slot-width) - 2px),
+    transparent calc(var(--ctest-slot-width) - 2px),
+    transparent var(--ctest-slot-width)
+  );
+  background-position: left calc(100% - 5px);
+  background-repeat: repeat-x;
+  background-size: var(--ctest-slot-width) 2px;
   outline: none;
-  border-top: none;
-  border-left: none;
-  border-right: none;
-  text-align: center;
+  text-align: var(--ctest-text-align, left);
+  text-indent: var(--ctest-text-offset, calc((var(--ctest-slot-width) - 1ch) / 2));
+  letter-spacing: var(--ctest-letter-spacing, calc(var(--ctest-slot-width) - 1ch));
   vertical-align: baseline;
-  transition: border-color 0.15s;
+  transition: background-color 0.15s, box-shadow 0.15s;
+  font-kerning: none;
 }
-.ctest-blank:focus { border-color: var(--teal-dark); background: var(--teal-light); }
-.ctest-blank.filled { border-color: var(--teal-dark); }
+.ctest-blank::placeholder { color: transparent; }
+.ctest-blank:focus {
+  background-color: #cfd3d7;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08);
+}
+.ctest-blank.filled { background-color: #d2d6da; }
 
 /* ============================================================
    AUDIO PLAYER / SPEAKER SCREEN

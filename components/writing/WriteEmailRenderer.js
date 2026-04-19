@@ -60,11 +60,6 @@ export default function WriteEmailRenderer({ prompt = '', context = '', value = 
           spellCheck={true}
         />
 
-        <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 13, color: 'var(--text-muted)' }}>
-          <span>✓ Spelling check enabled</span>
-          <span>|</span>
-          <span>Use standard email conventions (greeting, body, closing)</span>
-        </div>
       </div>
     </div>
   );

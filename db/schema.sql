@@ -18,10 +18,13 @@ create table if not exists student_profiles (
 );
 
 -- Auto-create profile on signup
-create or replace function handle_new_user()
-returns trigger language plpgsql security definer as $$
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
 begin
-  insert into student_profiles (id, email, full_name)
+  insert into public.student_profiles (id, email, full_name)
   values (
     new.id,
     new.email,
@@ -73,7 +76,7 @@ create table if not exists test_questions (
 
   -- MST module assignment
   module            text not null default 'module1'
-                    check (module in ('module1','module2_easy','module2_hard')),
+                    check (module in ('module1','module2_easy','module2_hard','module2_both')),
 
   -- Task type (all 12 iBT task types)
   task_type         text not null check (task_type in (
@@ -110,6 +113,13 @@ create table if not exists test_questions (
   order_index       integer default 0,
   created_at        timestamptz default now()
 );
+
+alter table test_questions
+  drop constraint if exists test_questions_module_check;
+
+alter table test_questions
+  add constraint test_questions_module_check
+  check (module in ('module1','module2_easy','module2_hard','module2_both'));
 
 create index if not exists idx_test_questions_section_id on test_questions(section_id);
 create index if not exists idx_test_questions_module on test_questions(module);
@@ -186,40 +196,53 @@ returns boolean language sql security definer as $$
 $$;
 
 -- student_profiles: users can see/edit own profile; admins see all
+drop policy if exists "Own profile" on student_profiles;
 create policy "Own profile" on student_profiles for all
   using (auth.uid() = id or is_admin());
 
 -- tests: admins manage; students can read
+drop policy if exists "tests_admin_manage" on tests;
 create policy "tests_admin_manage" on tests for all
   using (is_admin());
+drop policy if exists "tests_students_read" on tests;
 create policy "tests_students_read" on tests for select
   using (auth.uid() is not null);
 
 -- test_sections: same as tests
+drop policy if exists "sections_admin_manage" on test_sections;
 create policy "sections_admin_manage" on test_sections for all
   using (is_admin());
+drop policy if exists "sections_students_read" on test_sections;
 create policy "sections_students_read" on test_sections for select
   using (auth.uid() is not null);
 
 -- test_questions: same
+drop policy if exists "questions_admin_manage" on test_questions;
 create policy "questions_admin_manage" on test_questions for all
   using (is_admin());
+drop policy if exists "questions_students_read" on test_questions;
 create policy "questions_students_read" on test_questions for select
   using (auth.uid() is not null);
 
 -- test_assignments: admins manage; students can see own
+drop policy if exists "assignments_admin_manage" on test_assignments;
 create policy "assignments_admin_manage" on test_assignments for all
   using (is_admin());
+drop policy if exists "assignments_student_own" on test_assignments;
 create policy "assignments_student_own" on test_assignments for select
   using (auth.uid() = student_id);
 
 -- test_submissions: admins see all; students see own
+drop policy if exists "submissions_admin_manage" on test_submissions;
 create policy "submissions_admin_manage" on test_submissions for all
   using (is_admin());
+drop policy if exists "submissions_student_own" on test_submissions;
 create policy "submissions_student_own" on test_submissions for select
   using (auth.uid() = student_id);
+drop policy if exists "submissions_student_insert" on test_submissions;
 create policy "submissions_student_insert" on test_submissions for insert
   with check (auth.uid() = student_id);
+drop policy if exists "submissions_student_update" on test_submissions;
 create policy "submissions_student_update" on test_submissions for update
   using (auth.uid() = student_id);
 

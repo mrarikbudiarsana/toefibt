@@ -1,4 +1,100 @@
-'use client';
+import RadioOptionList from '@/components/shared/RadioOptionList';
+import HighlightedText from '@/components/shared/HighlightedText';
+
+function parseEmailPassage(passage) {
+  const lines = (passage || '').split(/\r?\n/);
+  const headers = {};
+  let bodyStartIndex = 0;
+  let hasAnyHeader = false;
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i].trim();
+    if (!line) {
+      bodyStartIndex = i + 1;
+      continue;
+    }
+
+    const match = line.match(/^(To|From|Date|Subject):\s*(.*)$/i);
+    if (!match) {
+      break;
+    }
+
+    headers[match[1].toLowerCase()] = match[2];
+    bodyStartIndex = i + 1;
+    hasAnyHeader = true;
+  }
+
+  // If it clearly looks like an email (has at least one header or starts with Dear/Hi), handle it
+  const bodyText = lines.slice(bodyStartIndex).join('\n').trim();
+  const startsLikeLetter = /^(Dear|Hi|Hello|To whom)/i.test(bodyText);
+
+  if (!hasAnyHeader && !startsLikeLetter) return null;
+
+  const body = bodyText.replace(/^\s*-{3,}\s*/m, '').trim();
+
+  return { headers, body };
+}
+
+function DocumentContainer({ children }) {
+  return (
+    <div
+      style={{
+        background: '#fff',
+        border: '1px solid #d1d5db',
+        borderRadius: '4px',
+        width: '100%',
+        margin: '0 auto',
+        color: '#1a202c',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        overflow: 'hidden',
+        maxWidth: '92%',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function EmailDocument({ headers, body }) {
+  return (
+    <DocumentContainer>
+      {(headers.to || headers.from || headers.subject || headers.date) && (
+        <div style={{ padding: '18px 24px', borderBottom: '1px solid #edf2f7', background: '#fcfdfe' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'min-content 16px 1fr', rowGap: 8, columnGap: 4, fontSize: 13.5, lineHeight: 1.4 }}>
+            {Object.entries({
+              To: headers.to,
+              From: headers.from,
+              Date: headers.date,
+              Subject: headers.subject,
+            }).map(([label, value]) => value ? (
+              <div key={label} style={{ display: 'contents' }}>
+                <div style={{ fontWeight: 600, color: '#6b7280', whiteSpace: 'nowrap' }}>{label}</div>
+                <div style={{ fontWeight: 400, color: '#cbd5e1', textAlign: 'center' }}>:</div>
+                <div style={{ fontWeight: 600, color: '#1f2937' }}>{value}</div>
+              </div>
+            ) : null)}
+          </div>
+        </div>
+      )}
+
+      <div className="passage-text" style={{ padding: '24px', fontSize: 16, lineHeight: 1.6, whiteSpace: 'pre-wrap', color: '#1a202c' }}>
+        <HighlightedText text={(body || '').replace(/\n{3,}/g, '\n\n').trim()} />
+      </div>
+    </DocumentContainer>
+  );
+}
+
+function GenericDocument({ passage }) {
+  return (
+    <DocumentContainer>
+      <div className="passage-text" style={{ padding: '32px 36px', fontSize: 16, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+        <HighlightedText text={passage || 'Sample daily life reading passage will appear here (e.g. schedule, flyer, email, or announcement).'} />
+      </div>
+    </DocumentContainer>
+  );
+}
 
 /**
  * Read in Daily Life Renderer
@@ -6,57 +102,43 @@
  * Confirmed from ETS screenshots.
  */
 export default function ReadDailyLifeRenderer({ passage = '', question, options = [], selected, onSelect, questionNumber, totalQuestions }) {
-  return (
-    <div className="split-layout">
-      {/* Left — generic document/notice mockup */}
-      <div className="split-pane split-pane--left">
-        <div className="split-pane__label">Reading Document</div>
+  const emailDocument = parseEmailPassage(passage);
+  const choices = (options.length ? options : ['Option A', 'Option B', 'Option C', 'Option D']).slice(0, 4);
 
-        {/* Generic Document Container */}
-        <div style={{
-          background: '#fff',
-          border: '1px solid #e5e7eb',
-          borderRadius: 8,
-          padding: '32px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-          width: '100%',
-          minHeight: 400,
-          overflowX: 'auto',
-          color: '#1f2937'
-        }}>
-          <div className="passage-text" style={{ fontSize: 14, whiteSpace: 'pre-wrap' }}>
-            {passage || 'Sample daily life reading passage will appear here (e.g. schedule, flyer, email, or announcement).'}
-          </div>
-        </div>
+  return (
+    <div className="split-layout" style={{ height: 'calc(100vh - 96px)', background: '#fff' }}>
+      <div
+        className="split-pane split-pane--left"
+        style={{
+          background: '#f8fafc', 
+          borderRight: '1px solid #e2e8f0',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          padding: '24px',
+          overflowY: 'auto'
+        }}
+      >
+        {emailDocument ? (
+          <EmailDocument headers={emailDocument.headers} body={emailDocument.body} />
+        ) : (
+          <GenericDocument passage={passage} />
+        )}
       </div>
 
-      {/* Right — MCQ */}
-      <div className="split-pane split-pane--right">
-        <div className="split-pane__label">
-          Question {questionNumber} of {totalQuestions}
-        </div>
+      <div className="split-pane split-pane--right" style={{ background: '#fff', padding: '60px 80px', overflowY: 'auto' }}>
+        <div style={{ maxWidth: '580px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', padding: '4px 10px', background: 'var(--teal-light)', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Question {questionNumber}
+            </span>
+          </div>
 
-        <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 20, lineHeight: 1.55 }}>
-          {question ?? 'What is the main purpose of this text?'}
-        </p>
+          <p style={{ fontSize: 18, fontWeight: 600, color: '#111', marginBottom: 40, lineHeight: 1.55 }}>
+            {question ?? 'What is the main purpose of this text?'}
+          </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {(options.length ? options : ['Option A', 'Option B', 'Option C', 'Option D'])
-            .slice(0, 4)
-            .map((opt, i) => {
-              const letter = String.fromCharCode(65 + i);
-              const isSelected = selected === letter;
-              return (
-                <button
-                  key={letter}
-                  className={`mcq-option ${isSelected ? 'selected' : ''}`}
-                  onClick={() => onSelect(letter)}
-                >
-                  <span className="mcq-option__letter">{letter}</span>
-                  <span>{opt}</span>
-                </button>
-              );
-            })}
+          <RadioOptionList options={choices} selected={selected} onSelect={onSelect} gap={24} fontSize={16} />
         </div>
       </div>
     </div>

@@ -74,6 +74,7 @@ export default function TestPage() {
               id, title, section_order,
               test_sections (
                 id, section_type, has_mst, module1_threshold, order_index,
+                reading_passage,
                 test_questions (
                   id, module, task_type, is_scored, prompt, options, correct_answer,
                   audio_url, speaker_photo_url, group_audio_url, group_id,
@@ -117,7 +118,13 @@ export default function TestPage() {
     const sec = getSectionData(s);
     if (!sec) return [];
     return (sec.test_questions ?? [])
-      .filter(q => q.module === mod)
+      .filter(q => {
+        if (q.module === mod) return true;
+        if (mod === 'module2_easy' || mod === 'module2_hard') {
+          return q.module === 'module2_both';
+        }
+        return false;
+      })
       .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
   }
 
@@ -259,16 +266,25 @@ export default function TestPage() {
   const counterText = (() => {
     if (!isQuestionScreen) return '';
     const q = currentQuestion;
-    const taskType = q?.task_type;
-    if (taskType === 'c_test') {
-      const start = questionIdx + 1;
-      const end = Math.min(questionIdx + 10, questions.length);
-      const scored = questions.filter(q => q.is_scored !== false).length;
-      return `Questions ${start}–${end} of ${scored}`;
+    if (!q) return '';
+
+    // Calculate total questions (weighted: c_test=10, others=1)
+    const totalQuestions = questions.reduce((sum, item) => {
+      return sum + (item.task_type === 'c_test' ? 10 : 1);
+    }, 0);
+
+    // Calculate current question number range
+    let currentStart = 1;
+    for (let i = 0; i < questionIdx; i++) {
+      currentStart += (questions[i].task_type === 'c_test' ? 10 : 1);
     }
-    const num = questionIdx + 1;
-    const total = questions.filter(q => q.is_scored !== false).length;
-    return `Question ${num} of ${total}`;
+
+    if (q.task_type === 'c_test') {
+      const currentEnd = currentStart + 9;
+      return `Questions ${currentStart}–${currentEnd} of ${totalQuestions}`;
+    }
+
+    return `Question ${currentStart} of ${totalQuestions}`;
   })();
 
   // ── Render question ────────────────────────────────────────
@@ -281,6 +297,14 @@ export default function TestPage() {
     const selected = answers[qId] ?? null;
     const onSelect = (letter) => setAnswers(prev => ({ ...prev, [qId]: letter }));
 
+    // Weighted calculations
+    const totalQuestions = questions.reduce((sum, item) => sum + (item.task_type === 'c_test' ? 10 : 1), 0);
+    let currentStart = 1;
+    for (let i = 0; i < questionIdx; i++) {
+      currentStart += (questions[i].task_type === 'c_test' ? 10 : 1);
+    }
+    const questionNumber = currentStart;
+
     // Reading
     if (task_type === 'c_test') {
       const customInstruction = (options && options.length > 0 && options[0]) ? options[0] : 'Fill in the missing letters in the paragraph.';
@@ -291,25 +315,37 @@ export default function TestPage() {
           instruction={customInstruction}
           answers={answers}
           onAnswer={(blankId, val) => setAnswers(prev => ({ ...prev, [blankId]: val }))}
-          questionRange={[questionIdx + 1, Math.min(questionIdx + 10, questions.length)]}
-          totalScored={questions.filter(q => q.is_scored !== false).length}
+          questionRange={[questionNumber, questionNumber + 9]}
+          totalQuestions={totalQuestions}
         />
       );
     }
     if (task_type === 'read_daily_life' || task_type === 'read_academic') {
       const sec = getSectionData(section);
       let passages = [];
-      try { passages = sec?.reading_passage ? JSON.parse(sec.reading_passage) : []; }
-      catch (e) { passages = [sec?.reading_passage || '']; }
-      if (!Array.isArray(passages)) passages = [passages];
+      const rawPassage = sec?.reading_passage;
+      if (rawPassage) {
+        if (typeof rawPassage === 'string') {
+          try {
+            const parsed = JSON.parse(rawPassage);
+            passages = Array.isArray(parsed) ? parsed : [parsed];
+          } catch (e) {
+            passages = [rawPassage];
+          }
+        } else if (Array.isArray(rawPassage)) {
+          passages = rawPassage;
+        } else {
+          passages = [String(rawPassage)];
+        }
+      }
       
       const passageIdx = parseInt(group_id || '0', 10);
       const passageText = passages[passageIdx] || passages[0] || '';
 
       if (task_type === 'read_daily_life') {
-        return <ReadDailyLifeRenderer passage={passageText} question={prompt} options={options} selected={selected} onSelect={onSelect} questionNumber={questionIdx + 1} totalQuestions={questions.length} />;
+        return <ReadDailyLifeRenderer passage={passageText} question={prompt} options={options} selected={selected} onSelect={onSelect} questionNumber={questionNumber} totalQuestions={totalQuestions} />;
       }
-      return <ReadAcademicRenderer passage={passageText} question={prompt} options={options} selected={selected} onSelect={onSelect} questionNumber={questionIdx + 1} totalQuestions={questions.length} />;
+      return <ReadAcademicRenderer passage={passageText} question={prompt} options={options} selected={selected} onSelect={onSelect} questionNumber={questionNumber} totalQuestions={totalQuestions} />;
     }
 
     // Listening
@@ -349,8 +385,8 @@ export default function TestPage() {
           tiles={tiles}
           answer={writingAnswers[qId] ?? []}
           onAnswer={ordered => setWritingAnswers(prev => ({ ...prev, [qId]: ordered }))}
-          questionNumber={questionIdx + 1}
-          totalQuestions={questions.length}
+          questionNumber={questionNumber}
+          totalQuestions={totalQuestions}
         />
       );
     }
@@ -360,8 +396,8 @@ export default function TestPage() {
           prompt={prompt}
           value={writingAnswers[qId] ?? ''}
           onChange={val => setWritingAnswers(prev => ({ ...prev, [qId]: val }))}
-          questionNumber={questionIdx + 1}
-          totalQuestions={questions.length}
+          questionNumber={questionNumber}
+          totalQuestions={totalQuestions}
         />
       );
     }
@@ -371,8 +407,8 @@ export default function TestPage() {
           prompt={prompt}
           value={writingAnswers[qId] ?? ''}
           onChange={val => setWritingAnswers(prev => ({ ...prev, [qId]: val }))}
-          questionNumber={questionIdx + 1}
-          totalQuestions={questions.length}
+          questionNumber={questionNumber}
+          totalQuestions={totalQuestions}
         />
       );
     }
@@ -393,8 +429,8 @@ export default function TestPage() {
           question={prompt}
           interviewerPhotoUrl={speaker_photo_url}
           onRecordingReady={blob => setSpeakingBlobs(prev => ({ ...prev, [qId]: blob }))}
-          questionNumber={questionIdx + 1}
-          totalQuestions={questions.length}
+          questionNumber={questionNumber}
+          totalQuestions={totalQuestions}
         />
       );
     }

@@ -85,9 +85,6 @@ export default function WriteDiscussionRenderer({ discussionPosts = SAMPLE_POSTS
           spellCheck={true}
         />
 
-        <div style={{ marginTop: 10, fontSize: 13, color: 'var(--text-muted)' }}>
-          Aim for 100+ words. Share your opinion and explain your reasoning.
-        </div>
       </div>
     </div>
   );

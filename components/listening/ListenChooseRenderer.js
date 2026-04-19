@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import RadioOptionList from '@/components/shared/RadioOptionList';
 
 /**
  * Listen and Choose a Response
@@ -58,21 +59,7 @@ export default function ListenChooseRenderer({ audioUrl, options = [], selected,
           <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 20, textAlign: 'center' }}>
             Choose the most appropriate response:
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {options.slice(0, 4).map((opt, i) => {
-              const letter = String.fromCharCode(65 + i);
-              return (
-                <button
-                  key={letter}
-                  className={`mcq-option ${selected === letter ? 'selected' : ''}`}
-                  onClick={() => onSelect(letter)}
-                >
-                  <span className="mcq-option__letter">{letter}</span>
-                  <span>{opt}</span>
-                </button>
-              );
-            })}
-          </div>
+          <RadioOptionList options={options.slice(0, 4)} selected={selected} onSelect={onSelect} gap={18} fontSize={15} />
         </div>
       )}
     </div>

@@ -1,7 +1,9 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import QuestionPreview from '@/components/admin/QuestionPreview';
 
 const TASK_TYPES = {
   reading: [
@@ -28,11 +30,59 @@ const TASK_TYPES = {
 
 const MODULE_OPTIONS = [
   { value: 'module1', label: 'Module 1 (All students)' },
-  { value: 'module2_hard', label: 'Module 2 — Hard Path (Advanced)' },
-  { value: 'module2_easy', label: 'Module 2 — Easy Path (Standard)' },
+  { value: 'module2_both', label: 'Module 2 - Both Paths (Shared)' },
+  { value: 'module2_hard', label: 'Module 2 - Hard Path (Advanced)' },
+  { value: 'module2_easy', label: 'Module 2 - Easy Path (Standard)' },
+];
+
+const READING_MODULE_GROUPS = [
+  {
+    value: 'module1',
+    title: 'Module 1',
+    description: 'Questions every student sees before routing.',
+    accent: 'var(--teal)',
+    background: 'rgba(15, 118, 110, 0.06)',
+  },
+  {
+    value: 'module2_hard',
+    title: 'Hard Path',
+    description: 'Advanced follow-up questions after a strong Module 1.',
+    accent: '#b45309',
+    background: 'rgba(217, 119, 6, 0.08)',
+  },
+  {
+    value: 'module2_easy',
+    title: 'Easy Path',
+    description: 'Standard follow-up questions after a lower Module 1 score.',
+    accent: '#2563eb',
+    background: 'rgba(37, 99, 235, 0.08)',
+  },
+  {
+    value: 'module2_both',
+    title: 'Both Paths',
+    description: 'Shared Module 2 questions shown to both easy and hard routes.',
+    accent: '#7c3aed',
+    background: 'rgba(124, 58, 237, 0.08)',
+  },
 ];
 
 const SECTION_ORDER = ['reading', 'listening', 'writing', 'speaking'];
+
+function parseReadingPassages(value) {
+  let passages = [];
+
+  try {
+    passages = value ? JSON.parse(value) : [''];
+  } catch {
+    passages = [value || ''];
+  }
+
+  if (!Array.isArray(passages) || passages.length === 0) {
+    passages = [''];
+  }
+
+  return passages.map(passage => typeof passage === 'string' ? passage : String(passage ?? ''));
+}
 
 function emptyQuestion(sectionType) {
   return {
@@ -73,6 +123,7 @@ export default function EditTestPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeSection, setActiveSection] = useState(0);
+  const [activeReadingModule, setActiveReadingModule] = useState('module1');
 
   useEffect(() => {
     async function loadTest() {
@@ -94,50 +145,51 @@ export default function EditTestPage() {
           .single();
 
         if (err) throw err;
-        
+
         setTitle(data.title);
-        
-        let loadedSections = data.test_sections || [];
-        loadedSections.sort((a, b) => a.order_index - b.order_index);
-        
-        const mappedSections = SECTION_ORDER.map((secType, secIndex) => {
-          const loadedSec = loadedSections.find(s => s.section_type === secType);
-          if (loadedSec) {
-            let loadedQuestions = loadedSec.test_questions || [];
-            loadedQuestions.sort((a, b) => a.order_index - b.order_index);
-            
-            return {
-              _id: loadedSec.id,
-              section_type: loadedSec.section_type,
-              has_mst: !!loadedSec.has_mst,
-              module1_threshold: loadedSec.module1_threshold ?? (secType === 'reading' ? 13 : 11),
-              reading_passage: loadedSec.reading_passage ?? '',
-              order_index: loadedSec.order_index,
-              questions: loadedQuestions.map(q => {
-                const tiles = q.tiles_data ? (typeof q.tiles_data === 'string' ? JSON.parse(q.tiles_data) : q.tiles_data) : [];
-                return {
-                  _id: q.id,
-                  module: q.module || 'module1',
-                  task_type: q.task_type || '',
-                  is_scored: q.is_scored !== false, // default true
-                  prompt: q.prompt || '',
-                  options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : ['', '', '', ''],
-                  correct_answer: q.correct_answer || '',
-                  blanks_data: q.blanks_data ? (typeof q.blanks_data === 'string' ? JSON.parse(q.blanks_data) : q.blanks_data) : [],
-                  audio_url: q.audio_url || '',
-                  speaker_photo_url: q.speaker_photo_url || '',
-                  group_audio_url: q.group_audio_url || '',
-                  group_id: q.group_id || '',
-                  tiles_data: Array.isArray(tiles) ? tiles.join(', ') : (tiles || ''),
-                  order_index: q.order_index || 0,
-                };
-              }),
-            };
-          } else {
-            return emptySection(secType);
+
+        const loadedSections = [...(data.test_sections || [])].sort((a, b) => a.order_index - b.order_index);
+        const mappedSections = SECTION_ORDER.map(sectionType => {
+          const loadedSection = loadedSections.find(section => section.section_type === sectionType);
+
+          if (!loadedSection) {
+            return emptySection(sectionType);
           }
+
+          const loadedQuestions = [...(loadedSection.test_questions || [])].sort((a, b) => a.order_index - b.order_index);
+
+          return {
+            _id: loadedSection.id,
+            section_type: loadedSection.section_type,
+            has_mst: !!loadedSection.has_mst,
+            module1_threshold: loadedSection.module1_threshold ?? (sectionType === 'reading' ? 13 : 11),
+            reading_passage: loadedSection.reading_passage ?? '',
+            order_index: loadedSection.order_index,
+            questions: loadedQuestions.map(question => {
+              const tiles = question.tiles_data
+                ? (typeof question.tiles_data === 'string' ? JSON.parse(question.tiles_data) : question.tiles_data)
+                : [];
+
+              return {
+                _id: question.id,
+                module: question.module || 'module1',
+                task_type: question.task_type || '',
+                is_scored: question.is_scored !== false,
+                prompt: question.prompt || '',
+                options: question.options ? (typeof question.options === 'string' ? JSON.parse(question.options) : question.options) : ['', '', '', ''],
+                correct_answer: question.correct_answer || '',
+                blanks_data: question.blanks_data ? (typeof question.blanks_data === 'string' ? JSON.parse(question.blanks_data) : question.blanks_data) : [],
+                audio_url: question.audio_url || '',
+                speaker_photo_url: question.speaker_photo_url || '',
+                group_audio_url: question.group_audio_url || '',
+                group_id: question.group_id || '',
+                tiles_data: Array.isArray(tiles) ? tiles.join(', ') : (tiles || ''),
+                order_index: question.order_index || 0,
+              };
+            }),
+          };
         });
-        
+
         setSections(mappedSections);
       } catch (err) {
         setError(err.message);
@@ -145,126 +197,156 @@ export default function EditTestPage() {
         setLoading(false);
       }
     }
-    if (testId) loadTest();
+
+    if (testId) {
+      loadTest();
+    }
   }, [testId]);
 
   function updateSection(idx, field, value) {
-    setSections(prev => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s));
+    setSections(prev => prev.map((section, i) => i === idx ? { ...section, [field]: value } : section));
   }
 
   function updateQuestion(sIdx, qIdx, field, value) {
-    setSections(prev => prev.map((s, i) => {
-      if (i !== sIdx) return s;
-      return { ...s, questions: s.questions.map((q, j) => j === qIdx ? { ...q, [field]: value } : q) };
-    }));
-  }
-
-  function updateOption(sIdx, qIdx, optIdx, value) {
-    setSections(prev => prev.map((s, i) => {
-      if (i !== sIdx) return s;
+    setSections(prev => prev.map((section, i) => {
+      if (i !== sIdx) return section;
       return {
-        ...s, questions: s.questions.map((q, j) => {
-          if (j !== qIdx) return q;
-          const opts = [...(q.options ?? ['', '', '', ''])];
-          opts[optIdx] = value;
-          return { ...q, options: opts };
-        })
+        ...section,
+        questions: section.questions.map((question, j) => j === qIdx ? { ...question, [field]: value } : question),
       };
     }));
   }
 
-  function addQuestion(sIdx) {
-    setSections(prev => prev.map((s, i) => {
-      if (i !== sIdx) return s;
-      return { ...s, questions: [...s.questions, emptyQuestion(s.section_type)] };
+  function updateOption(sIdx, qIdx, optIdx, value) {
+    setSections(prev => prev.map((section, i) => {
+      if (i !== sIdx) return section;
+      return {
+        ...section,
+        questions: section.questions.map((question, j) => {
+          if (j !== qIdx) return question;
+          const options = [...(question.options ?? ['', '', '', ''])];
+          options[optIdx] = value;
+          return { ...question, options };
+        }),
+      };
+    }));
+  }
+
+  function addQuestion(sIdx, overrides = {}) {
+    setSections(prev => prev.map((section, i) => {
+      if (i !== sIdx) return section;
+      return {
+        ...section,
+        questions: [...section.questions, { ...emptyQuestion(section.section_type), ...overrides }],
+      };
     }));
   }
 
   function removeQuestion(sIdx, qIdx) {
-    setSections(prev => prev.map((s, i) => {
-      if (i !== sIdx) return s;
-      return { ...s, questions: s.questions.filter((_, j) => j !== qIdx) };
+    setSections(prev => prev.map((section, i) => {
+      if (i !== sIdx) return section;
+      return { ...section, questions: section.questions.filter((_, j) => j !== qIdx) };
     }));
   }
 
   function moveQuestion(sIdx, qIdx, direction) {
-    setSections(prev => prev.map((s, i) => {
-      if (i !== sIdx) return s;
-      const newQuestions = [...s.questions];
+    setSections(prev => prev.map((section, i) => {
+      if (i !== sIdx) return section;
+      const nextQuestions = [...section.questions];
       if (direction === -1 && qIdx > 0) {
-        const temp = newQuestions[qIdx - 1];
-        newQuestions[qIdx - 1] = newQuestions[qIdx];
-        newQuestions[qIdx] = temp;
-      } else if (direction === 1 && qIdx < newQuestions.length - 1) {
-        const temp = newQuestions[qIdx + 1];
-        newQuestions[qIdx + 1] = newQuestions[qIdx];
-        newQuestions[qIdx] = temp;
+        [nextQuestions[qIdx - 1], nextQuestions[qIdx]] = [nextQuestions[qIdx], nextQuestions[qIdx - 1]];
+      } else if (direction === 1 && qIdx < nextQuestions.length - 1) {
+        [nextQuestions[qIdx + 1], nextQuestions[qIdx]] = [nextQuestions[qIdx], nextQuestions[qIdx + 1]];
       }
-      return { ...s, questions: newQuestions };
+      return { ...section, questions: nextQuestions };
+    }));
+  }
+
+  function moveReadingQuestionWithinModule(sIdx, qIdx, direction) {
+    setSections(prev => prev.map((section, i) => {
+      if (i !== sIdx) return section;
+      const currentQuestion = section.questions[qIdx];
+      if (!currentQuestion) return section;
+
+      const moduleIndexes = section.questions.reduce((indexes, question, index) => {
+        if (question.module === currentQuestion.module) indexes.push(index);
+        return indexes;
+      }, []);
+
+      const currentPosition = moduleIndexes.indexOf(qIdx);
+      const targetIdx = moduleIndexes[currentPosition + direction];
+      if (targetIdx === undefined) return section;
+
+      const nextQuestions = [...section.questions];
+      [nextQuestions[targetIdx], nextQuestions[qIdx]] = [nextQuestions[qIdx], nextQuestions[targetIdx]];
+      return { ...section, questions: nextQuestions };
     }));
   }
 
   async function handleSave() {
-    if (!title.trim()) { setError('Please enter a test title.'); return; }
+    if (!title.trim()) {
+      setError('Please enter a test title.');
+      return;
+    }
+
     setSaving(true);
     setError('');
+
     try {
       const sb = createClient();
 
-      // Update test title
       const { error: tErr } = await sb
         .from('tests')
         .update({ title: title.trim(), section_order: SECTION_ORDER })
         .eq('id', testId);
+
       if (tErr) throw tErr;
 
-      // For simplicity when editing complex nested structures, we'll delete existing sections mapped to this test
-      // and re-insert them. This avoids complex diffing for updates/deletions.
-      const { error: delErr } = await sb.from('test_sections').delete().eq('test_id', testId);
-      if (delErr) throw delErr;
+      const { error: deleteErr } = await sb.from('test_sections').delete().eq('test_id', testId);
+      if (deleteErr) throw deleteErr;
 
-      // Insert fresh sections + questions
-      for (const sec of sections) {
-        const { data: dbSec, error: sErr } = await sb
+      for (const section of sections) {
+        const { data: dbSection, error: sErr } = await sb
           .from('test_sections')
           .insert({
             test_id: testId,
-            section_type: sec.section_type,
-            has_mst: sec.has_mst,
-            module1_threshold: sec.module1_threshold,
-            reading_passage: sec.reading_passage,
-            order_index: sec.order_index,
+            section_type: section.section_type,
+            has_mst: section.has_mst,
+            module1_threshold: section.module1_threshold,
+            reading_passage: section.reading_passage,
+            order_index: section.order_index,
           })
           .select('id')
           .single();
+
         if (sErr) throw sErr;
 
-        if (sec.questions.length > 0) {
-          const qRows = sec.questions.map((q, idx) => {
-            const options = q.options?.filter(o => o.trim());
-            const tiles = q.task_type === 'build_sentence' && typeof q.tiles_data === 'string' && q.tiles_data.trim()
-              ? q.tiles_data.trim().split(',').map(t => t.trim())
+        if (section.questions.length > 0) {
+          const questionRows = section.questions.map((question, index) => {
+            const options = question.options?.filter(option => option.trim());
+            const tiles = question.task_type === 'build_sentence' && typeof question.tiles_data === 'string' && question.tiles_data.trim()
+              ? question.tiles_data.trim().split(',').map(tile => tile.trim())
               : null;
-              
+
             return {
-              section_id: dbSec.id,
-              module: q.module,
-              task_type: q.task_type,
-              is_scored: q.is_scored,
-              prompt: q.prompt.trim(),
+              section_id: dbSection.id,
+              module: question.module,
+              task_type: question.task_type,
+              is_scored: question.is_scored,
+              prompt: question.prompt.trim(),
               options: options?.length ? options : null,
-              correct_answer: q.correct_answer.trim() || null,
+              correct_answer: question.correct_answer.trim() || null,
               blanks_data: null,
-              audio_url: q.audio_url.trim() || null,
-              speaker_photo_url: q.speaker_photo_url.trim() || null,
-              group_audio_url: q.group_audio_url.trim() || null,
-              group_id: q.group_id.trim() || null,
+              audio_url: question.audio_url.trim() || null,
+              speaker_photo_url: question.speaker_photo_url.trim() || null,
+              group_audio_url: question.group_audio_url.trim() || null,
+              group_id: question.group_id.trim() || null,
               tiles_data: tiles,
-              order_index: idx,
+              order_index: index,
             };
           });
 
-          const { error: qErr } = await sb.from('test_questions').insert(qRows);
+          const { error: qErr } = await sb.from('test_questions').insert(questionRows);
           if (qErr) throw qErr;
         }
       }
@@ -283,243 +365,421 @@ export default function EditTestPage() {
 
   if (!sections.length) return null;
 
-  const sec = sections[activeSection];
+  const section = sections[activeSection];
+  const readingPassages = section.section_type === 'reading' ? parseReadingPassages(section.reading_passage) : [];
+  const readingQuestionEntries = section.section_type === 'reading'
+    ? section.questions.map((question, index) => ({ question, index }))
+    : [];
+  const activeReadingGroup = READING_MODULE_GROUPS.find(group => group.value === activeReadingModule) ?? READING_MODULE_GROUPS[0];
+  const activeReadingEntries = readingQuestionEntries.filter(({ question }) => question.module === activeReadingModule);
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 24px' }}>
+    <div style={{ maxWidth: 1120, margin: '0 auto', padding: '32px 24px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28 }}>
-        <button className="btn btn--ghost btn--sm" onClick={() => router.push('/admin/tests')}>← Back</button>
+        <button className="btn btn--ghost btn--sm" onClick={() => router.push('/admin/tests')}>
+          {'<-'} Back
+        </button>
         <h1 style={{ fontSize: 22, fontWeight: 800, flex: 1 }}>Edit Test</h1>
         <button className="btn btn--primary" onClick={handleSave} disabled={saving}>
-          {saving ? 'Saving…' : '💾 Save Changes'}
+          {saving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
 
-      {error && (
-        <div className="login-form__error" style={{ marginBottom: 20 }}>{error}</div>
-      )}
+      {error && <div className="login-form__error" style={{ marginBottom: 20 }}>{error}</div>}
 
-      {/* Test title */}
       <div className="card" style={{ marginBottom: 24 }}>
         <label className="label" htmlFor="test-title">Test Title</label>
         <input
           id="test-title"
           className="input"
           value={title}
-          onChange={e => setTitle(e.target.value)}
-          placeholder="e.g. TOEFL iBT Mock Test #1 — April 2026"
+          onChange={event => setTitle(event.target.value)}
+          placeholder="e.g. TOEFL iBT Mock Test #1 - April 2026"
         />
       </div>
 
-      {/* Section tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 0, borderBottom: '2px solid var(--border)' }}>
-        {sections.map((s, i) => (
+        {sections.map((item, index) => (
           <button
-            key={s._id}
-            onClick={() => setActiveSection(i)}
+            key={item._id}
+            onClick={() => setActiveSection(index)}
             style={{
-              padding: '10px 20px', fontSize: 14, fontWeight: 600,
-              border: 'none', cursor: 'pointer',
-              background: activeSection === i ? 'var(--surface)' : 'transparent',
-              color: activeSection === i ? 'var(--teal)' : 'var(--text-muted)',
-              borderBottom: activeSection === i ? '3px solid var(--teal)' : '3px solid transparent',
+              padding: '10px 20px',
+              fontSize: 14,
+              fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
+              background: activeSection === index ? 'var(--surface)' : 'transparent',
+              color: activeSection === index ? 'var(--teal)' : 'var(--text-muted)',
+              borderBottom: activeSection === index ? '3px solid var(--teal)' : '3px solid transparent',
               borderRadius: '6px 6px 0 0',
               marginBottom: '-2px',
             }}
           >
-            {s.section_type.charAt(0).toUpperCase() + s.section_type.slice(1)}
+            {item.section_type.charAt(0).toUpperCase() + item.section_type.slice(1)}
             <span style={{ marginLeft: 6, fontSize: 11, background: 'var(--bg)', padding: '2px 6px', borderRadius: 100 }}>
-              {s.questions.length}
+              {item.questions.length}
             </span>
           </button>
         ))}
       </div>
 
-      {/* Section config */}
       <div className="card" style={{ borderRadius: '0 0 10px 10px', borderTop: 'none' }}>
-        <div style={{ display: 'flex', gap: 24, marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid var(--border-light)' }}>
-          {sec.has_mst && (
+        <div style={{ display: 'flex', gap: 24, marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid var(--border-light)', flexWrap: 'wrap' }}>
+          {section.has_mst && (
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <span className="label" style={{ marginBottom: 0 }}>MST Module 1 Threshold</span>
               <input
                 type="number"
                 className="input"
                 style={{ width: 100 }}
-                value={sec.module1_threshold}
-                onChange={e => updateSection(activeSection, 'module1_threshold', parseInt(e.target.value))}
-                min={1} max={35}
+                value={section.module1_threshold}
+                onChange={event => updateSection(activeSection, 'module1_threshold', parseInt(event.target.value, 10))}
+                min={1}
+                max={35}
               />
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                Min correct answers to route to Hard path
+                Minimum correct answers needed to route students to the hard path.
               </span>
             </label>
           )}
-          {sec.section_type === 'reading' && (
-             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
-               <label className="label">Reading Passages</label>
-               {(() => {
-                 let passages = [];
-                 try { passages = sec.reading_passage ? JSON.parse(sec.reading_passage) : ['']; }
-                 catch(e) { passages = [sec.reading_passage || '']; }
-                 if (!Array.isArray(passages)) passages = [passages];
-                 
-                 return passages.map((p, i) => (
-                   <div key={i} style={{ display: 'flex', gap: 8 }}>
-                     <textarea
-                       className="input"
-                       rows={4}
-                       value={p}
-                       onChange={e => {
-                         const newP = [...passages];
-                         newP[i] = e.target.value;
-                         updateSection(activeSection, 'reading_passage', JSON.stringify(newP));
-                       }}
-                       placeholder={`Passage ${i + 1} text...`}
-                     />
-                     {passages.length > 1 && (
-                       <button className="btn btn--sm" style={{ alignSelf: 'flex-start', background: 'var(--danger-bg)', color: 'var(--danger)' }} 
-                         onClick={() => {
-                           const newP = passages.filter((_, idx) => idx !== i);
-                           updateSection(activeSection, 'reading_passage', JSON.stringify(newP));
-                         }}>✕</button>
-                     )}
-                   </div>
-                 )).concat(
-                   <button key="add" className="btn btn--sm btn--outline" style={{ alignSelf: 'flex-start' }}
-                     onClick={() => {
-                       updateSection(activeSection, 'reading_passage', JSON.stringify([...passages, '']));
-                     }}>+ Add Passage</button>
-                 );
-               })()}
-             </div>
+
+          {section.section_type === 'reading' && (
+            <div style={{ flex: 1, minWidth: 320, padding: '10px 14px', borderRadius: 12, background: 'var(--surface)', color: 'var(--text-muted)', fontSize: 13 }}>
+              Reading uses one shared passage bank below. Choose a path tab there, then edit questions in that route.
+            </div>
           )}
         </div>
 
-        {/* Questions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {sec.questions.map((q, qIdx) => (
-            <QuestionEditor
-              key={q._id}
-              q={q}
-              qIdx={qIdx}
-              sectionType={sec.section_type}
-              sec={sec}
-              onChange={(field, value) => updateQuestion(activeSection, qIdx, field, value)}
-              onOptionChange={(optIdx, value) => updateOption(activeSection, qIdx, optIdx, value)}
-              onRemove={() => removeQuestion(activeSection, qIdx)}
-              onMoveUp={() => moveQuestion(activeSection, qIdx, -1)}
-              onMoveDown={() => moveQuestion(activeSection, qIdx, 1)}
-              isFirst={qIdx === 0}
-              isLast={qIdx === sec.questions.length - 1}
-            />
-          ))}
-        </div>
+        {section.section_type === 'reading' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div style={{ border: '1px solid var(--border)', borderRadius: 16, background: '#fff', padding: 18, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: activeReadingGroup.accent }}>{activeReadingGroup.title}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, maxWidth: 520 }}>
+                    {activeReadingGroup.description}
+                  </div>
+                </div>
+                <button
+                  className="btn btn--sm btn--outline"
+                  onClick={() => addQuestion(activeSection, { module: activeReadingModule })}
+                >
+                  + Add Question
+                </button>
+              </div>
 
-        <button
-          className="btn btn--outline btn--full"
-          style={{ marginTop: 16 }}
-          onClick={() => addQuestion(activeSection)}
-        >
-          + Add Question
-        </button>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {READING_MODULE_GROUPS.map(group => {
+                  const count = readingQuestionEntries.filter(({ question }) => question.module === group.value).length;
+                  const isActive = group.value === activeReadingModule;
+                  return (
+                    <button
+                      key={group.value}
+                      onClick={() => setActiveReadingModule(group.value)}
+                      style={{
+                        border: `1px solid ${isActive ? group.accent : 'var(--border)'}`,
+                        background: isActive ? group.background : '#fff',
+                        color: isActive ? group.accent : 'var(--text-secondary)',
+                        borderRadius: 999,
+                        padding: '10px 14px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        fontWeight: 700,
+                      }}
+                    >
+                      <span>{group.title}</span>
+                      <span style={{ fontSize: 12, padding: '3px 8px', borderRadius: 999, background: isActive ? '#fff' : 'var(--bg)', color: 'inherit' }}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {activeReadingEntries.length === 0 ? (
+                <div style={{ border: '1px dashed var(--border)', borderRadius: 12, padding: 18, background: 'var(--surface)', fontSize: 14, color: 'var(--text-muted)' }}>
+                  No questions in this path yet. Add one to start building this route.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {activeReadingEntries.map(({ question, index }, groupIndex) => (
+                    <QuestionEditor
+                      key={question._id}
+                      q={question}
+                      qIdx={index}
+                      displayNumber={groupIndex + 1}
+                      sectionType={section.section_type}
+                      sec={section}
+                      onChange={(field, value) => updateQuestion(activeSection, index, field, value)}
+                      onOptionChange={(optIdx, value) => updateOption(activeSection, index, optIdx, value)}
+                      onRemove={() => removeQuestion(activeSection, index)}
+                      onMoveUp={() => moveReadingQuestionWithinModule(activeSection, index, -1)}
+                      onMoveDown={() => moveReadingQuestionWithinModule(activeSection, index, 1)}
+                      isFirst={groupIndex === 0}
+                      isLast={groupIndex === activeReadingEntries.length - 1}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ border: '1px solid var(--border)', borderRadius: 16, background: '#f8fafc', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)' }}>Passage Bank</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                    Manage the shared reading texts and see how many questions use each one.
+                  </div>
+                </div>
+                <button
+                  className="btn btn--sm btn--outline"
+                  onClick={() => updateSection(activeSection, 'reading_passage', JSON.stringify([...readingPassages, '']))}
+                >
+                  + Add Passage
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gap: 12 }}>
+                {readingPassages.map((passage, passageIndex) => (
+                  <div
+                    key={passageIndex}
+                    style={{ border: '1px solid var(--border-light)', borderRadius: 12, padding: 14, background: '#fff' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>Passage {passageIndex + 1}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                          {readingQuestionEntries.filter(({ question }) => question.group_id === String(passageIndex)).length} linked questions
+                        </div>
+                      </div>
+                      {readingPassages.length > 1 && (
+                        <button
+                          className="btn btn--sm"
+                          style={{ background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid #fca5a5' }}
+                          onClick={() => {
+                            const nextPassages = readingPassages.filter((_, index) => index !== passageIndex);
+                            const nextQuestions = section.questions.map(question => {
+                              if (!['read_daily_life', 'read_academic'].includes(question.task_type)) return question;
+                              const currentIndex = Number.parseInt(question.group_id || '0', 10);
+                              if (Number.isNaN(currentIndex) || currentIndex === passageIndex) {
+                                return { ...question, group_id: '0' };
+                              }
+                              if (currentIndex > passageIndex) {
+                                return { ...question, group_id: String(currentIndex - 1) };
+                              }
+                              return question;
+                            });
+                            updateSection(activeSection, 'reading_passage', JSON.stringify(nextPassages));
+                            updateSection(activeSection, 'questions', nextQuestions);
+                          }}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                      <textarea
+                        className="input"
+                        rows={5}
+                        value={passage}
+                        onChange={event => {
+                          const nextPassages = [...readingPassages];
+                          nextPassages[passageIndex] = event.target.value;
+                          updateSection(activeSection, 'reading_passage', JSON.stringify(nextPassages));
+                        }}
+                        placeholder={`Passage ${passageIndex + 1} text...`}
+                      />
+                      <div style={{ fontSize: 12, color: 'var(--teal)', background: 'var(--teal-light)', padding: '6px 10px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                        <span>💡 <strong>Tip:</strong> Use <code>==word==</code> to highlight a word (e.g. for vocabulary questions).</span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {section.questions.map((question, qIdx) => (
+                <QuestionEditor
+                  key={question._id}
+                  q={question}
+                  qIdx={qIdx}
+                  displayNumber={qIdx + 1}
+                  sectionType={section.section_type}
+                  sec={section}
+                  onChange={(field, value) => updateQuestion(activeSection, qIdx, field, value)}
+                  onOptionChange={(optIdx, value) => updateOption(activeSection, qIdx, optIdx, value)}
+                  onRemove={() => removeQuestion(activeSection, qIdx)}
+                  onMoveUp={() => moveQuestion(activeSection, qIdx, -1)}
+                  onMoveDown={() => moveQuestion(activeSection, qIdx, 1)}
+                  isFirst={qIdx === 0}
+                  isLast={qIdx === section.questions.length - 1}
+                />
+              ))}
+            </div>
+
+            <button
+              className="btn btn--outline btn--full"
+              style={{ marginTop: 16 }}
+              onClick={() => addQuestion(activeSection)}
+            >
+              + Add Question
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-function QuestionEditor({ q, qIdx, sectionType, sec, onChange, onOptionChange, onRemove, onMoveUp, onMoveDown, isFirst, isLast }) {
-  const [collapsed, setCollapsed] = useState(false);
+function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, onOptionChange, onRemove, onMoveUp, onMoveDown, isFirst, isLast }) {
+  const [collapsed, setCollapsed] = useState(true);
+  const [showPreview, setShowPreview] = useState(false);
   const taskTypes = TASK_TYPES[sectionType] ?? [];
-  const showOptions = ['read_daily_life', 'read_academic', 'listen_choose_response',
-    'listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(q.task_type);
-  const showAudio = ['listen_choose_response', 'listen_conversation', 'listen_announcement',
-    'listen_academic_talk', 'listen_repeat'].includes(q.task_type);
+  const taskTypeLabel = taskTypes.find(taskType => taskType.value === q.task_type)?.label ?? q.task_type ?? 'No task type';
+  const showOptions = ['read_daily_life', 'read_academic', 'listen_choose_response', 'listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(q.task_type);
+  const showAudio = ['listen_choose_response', 'listen_conversation', 'listen_announcement', 'listen_academic_talk', 'listen_repeat'].includes(q.task_type);
   const showSpeakerPhoto = ['listen_conversation', 'listen_announcement', 'listen_academic_talk', 'take_interview'].includes(q.task_type);
   const showGroupAudio = ['listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(q.task_type);
   const showTiles = q.task_type === 'build_sentence';
-  const showCTestBlanks = q.task_type === 'c_test';
+  const readingPassageIndex = Number.parseInt(q.group_id || '0', 10);
+  const readingPassages = parseReadingPassages(sec.reading_passage);
+  const readingPassageLabel = sectionType === 'reading' && ['read_daily_life', 'read_academic'].includes(q.task_type)
+    ? `Passage ${Number.isNaN(readingPassageIndex) ? 1 : readingPassageIndex + 1}`
+    : null;
 
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-      {/* Question header */}
+    <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: '#fff' }}>
       <div
-        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--bg)', cursor: 'pointer', userSelect: 'none' }}
+        style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'var(--bg)', cursor: 'pointer', userSelect: 'none' }}
         onClick={() => setCollapsed(!collapsed)}
       >
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)' }}>Q{qIdx + 1}</span>
-        <span style={{ flex: 1, fontSize: 13, color: 'var(--text-secondary)' }}>
-          {q.task_type || 'No task type'} · {q.prompt?.slice(0, 60) || 'No prompt'}
-        </span>
-        <span className={`badge ${q.is_scored ? 'badge--green' : 'badge--warn'}`} style={{ fontSize: 11 }}>
-          {q.is_scored ? 'Scored' : 'Unscored'}
-        </span>
-        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{collapsed ? '▼' : '▲'}</span>
-        <div style={{ display: 'flex', gap: 4, marginLeft: 8 }} onClick={e => e.stopPropagation()}>
+        <div style={{ minWidth: 44 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)' }}>Q{displayNumber ?? (qIdx + 1)}</div>
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+              {taskTypeLabel}
+            </span>
+            {readingPassageLabel && (
+              <span className="badge" style={{ fontSize: 11, background: 'rgba(37, 99, 235, 0.12)', color: '#1d4ed8' }}>
+                {readingPassageLabel}
+              </span>
+            )}
+            <span className={`badge ${q.is_scored ? 'badge--green' : 'badge--warn'}`} style={{ fontSize: 11 }}>
+              {q.is_scored ? 'Scored' : 'Unscored'}
+            </span>
+          </div>
+          <div style={{ fontSize: 15, lineHeight: 1.4, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {q.prompt?.trim() || 'No prompt yet'}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 4, marginLeft: 8 }} onClick={event => event.stopPropagation()}>
+          <button
+            className="btn btn--sm"
+            style={{ padding: '3px 8px', fontSize: 13 }}
+            onClick={() => {
+              setShowPreview(prev => {
+                const next = !prev;
+                if (next) setCollapsed(false);
+                return next;
+              });
+            }}
+          >
+            {showPreview ? 'Hide Preview' : 'Preview'}
+          </button>
+          <button
+            className="btn btn--sm"
+            style={{ padding: '3px 8px', fontSize: 13 }}
+            onClick={() => setCollapsed(prev => !prev)}
+          >
+            {collapsed ? 'Open' : 'Close'}
+          </button>
           <button
             className="btn btn--sm"
             style={{ padding: '3px 8px', fontSize: 13, opacity: isFirst ? 0.3 : 1 }}
             disabled={isFirst}
             onClick={onMoveUp}
-          >↑</button>
+          >
+            Up
+          </button>
           <button
             className="btn btn--sm"
             style={{ padding: '3px 8px', fontSize: 13, opacity: isLast ? 0.3 : 1 }}
             disabled={isLast}
             onClick={onMoveDown}
-          >↓</button>
+          >
+            Down
+          </button>
           <button
             className="btn btn--sm"
             style={{ background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid #fca5a5', padding: '3px 10px', marginLeft: 4 }}
             onClick={onRemove}
-          >✕</button>
+          >
+            X
+          </button>
         </div>
       </div>
 
       {!collapsed && (
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Row 1: Module + task type + scored */}
+          {showPreview && (
+            <QuestionPreview
+              question={q}
+              sectionType={sectionType}
+              section={sec}
+              questionNumber={displayNumber ?? (qIdx + 1)}
+              totalQuestions={1}
+            />
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12 }}>
             <div>
-              <label className="label" htmlFor={`module-${q._id}`}>Module</label>
-              <select id={`module-${q._id}`} className="input" value={q.module} onChange={e => onChange('module', e.target.value)}>
-                {MODULE_OPTIONS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+              <label className="label" htmlFor={`module-${q._id}`}>{sectionType === 'reading' ? 'Module / Path' : 'Module'}</label>
+              <select id={`module-${q._id}`} className="input" value={q.module} onChange={event => onChange('module', event.target.value)}>
+                {MODULE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </div>
             <div>
               <label className="label" htmlFor={`type-${q._id}`}>Task Type</label>
-              <select id={`type-${q._id}`} className="input" value={q.task_type} onChange={e => onChange('task_type', e.target.value)}>
-                {taskTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              <select id={`type-${q._id}`} className="input" value={q.task_type} onChange={event => onChange('task_type', event.target.value)}>
+                {taskTypes.map(taskType => <option key={taskType.value} value={taskType.value}>{taskType.label}</option>)}
               </select>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <label className="label">Scored?</label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, cursor: 'pointer' }}>
-                <input type="checkbox" checked={q.is_scored} onChange={e => onChange('is_scored', e.target.checked)} style={{ accentColor: 'var(--teal)', width: 16, height: 16 }} />
+                <input
+                  type="checkbox"
+                  checked={q.is_scored}
+                  onChange={event => onChange('is_scored', event.target.checked)}
+                  style={{ accentColor: 'var(--teal)', width: 16, height: 16 }}
+                />
                 <span style={{ fontSize: 14 }}>{q.is_scored ? 'Scored' : 'Unscored ghost'}</span>
               </label>
             </div>
           </div>
 
-          {/* Reading Passage Notice & Selection */}
           {(q.task_type === 'read_daily_life' || q.task_type === 'read_academic') && (
             <div style={{ padding: '14px', background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 6, fontSize: 13, color: 'var(--text-secondary)' }}>
               <label className="label" style={{ marginBottom: 8 }}>Select Reading Passage</label>
-              <select className="input" value={q.group_id || '0'} onChange={e => onChange('group_id', e.target.value)} style={{ width: '100%', maxWidth: 300 }}>
-                {(() => {
-                   let passages = [];
-                   try { passages = sec.reading_passage ? JSON.parse(sec.reading_passage) : ['']; }
-                   catch(e) { passages = [sec.reading_passage || '']; }
-                   if (!Array.isArray(passages)) passages = [passages];
-                   return passages.map((_, i) => <option key={i} value={i.toString()}>Passage {i + 1}</option>);
-                })()}
+              <select
+                className="input"
+                value={q.group_id || '0'}
+                onChange={event => onChange('group_id', event.target.value)}
+                style={{ width: '100%', maxWidth: 300 }}
+              >
+                {readingPassages.map((_, index) => <option key={index} value={index.toString()}>Passage {index + 1}</option>)}
               </select>
               <p style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
-                This is the passage the student will read for this question. You can edit the passages at the top of the Reading Section configuration.
+                This is the passage the student will read for this question. Edit passages in the reading section panel above.
               </p>
             </div>
           )}
 
-          {/* Custom Instruction (C-Test only) */}
           {q.task_type === 'c_test' && (
             <div>
               <label className="label" htmlFor={`inst-${q._id}`}>Custom Instructions</label>
@@ -527,51 +787,52 @@ function QuestionEditor({ q, qIdx, sectionType, sec, onChange, onOptionChange, o
                 id={`inst-${q._id}`}
                 className="input"
                 value={(q.options ?? [''])[0] ?? ''}
-                onChange={e => {
-                  const opts = [...(q.options ?? [''])];
-                  opts[0] = e.target.value;
-                  onChange('options', opts);
+                onChange={event => {
+                  const options = [...(q.options ?? [''])];
+                  options[0] = event.target.value;
+                  onChange('options', options);
                 }}
                 placeholder="e.g. Fill in the missing letters in the paragraph."
               />
             </div>
           )}
 
-          {/* Prompt */}
           <div>
             <label className="label" htmlFor={`prompt-${q._id}`}>
-              {q.task_type === 'listen_repeat' ? 'Sentence to Repeat' : 
-               q.task_type === 'c_test' ? 'C-Test Passage Text' :
-               'Question / Prompt'}
+              {q.task_type === 'listen_repeat' ? 'Sentence to Repeat' : q.task_type === 'c_test' ? 'C-Test Passage Text' : 'Question / Prompt'}
             </label>
             <textarea
               id={`prompt-${q._id}`}
               className="input"
               rows={q.task_type === 'c_test' ? 6 : 3}
               value={q.prompt}
-              onChange={e => onChange('prompt', e.target.value)}
-              placeholder={q.task_type === 'c_test' ? 'Enter passage and use {{brackets}} for blanks. e.g. The quick br{{own}} fox...' : 'Enter question text, passage, or instruction…'}
+              onChange={event => onChange('prompt', event.target.value)}
+              placeholder={q.task_type === 'c_test' ? 'Enter passage and use {{brackets}} for blanks. e.g. The quick br{{own}} fox...' : 'Enter question text, passage, or instruction...'}
             />
             {q.task_type === 'c_test' && (
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
-                <strong>How to create blanks:</strong> Wrap the missing part of the word in double curly brackets. 
-                For example, typing <code>pas{`{{sage}}`}</code> will display <code>pas____</code> to the student, and evaluate "sage" as the correct answer. Each bracket set represents one scored blank.
-              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                  <strong>How to create blanks:</strong> Wrap the missing part of the word in double curly brackets.
+                  For example, typing <code>pas{`{{sage}}`}</code> will display <code>pas____</code>.
+                </p>
+                <div style={{ fontSize: 12, color: 'var(--teal)', background: 'var(--teal-light)', padding: '6px 10px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start' }}>
+                  <span>💡 <strong>Tip:</strong> Use <code>==word==</code> to highlight a word for vocabulary questions.</span>
+                </div>
+              </div>
             )}
           </div>
 
-          {/* MCQ Options */}
           {showOptions && (
             <div>
-              <label className="label">Answer Options (A–D)</label>
+              <label className="label">Answer Options (A-D)</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                {['A', 'B', 'C', 'D'].map((letter, i) => (
+                {['A', 'B', 'C', 'D'].map((letter, index) => (
                   <div key={letter} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--teal)', width: 20 }}>{letter}</span>
                     <input
                       className="input"
-                      value={(q.options ?? ['', '', '', ''])[i] ?? ''}
-                      onChange={e => onOptionChange(i, e.target.value)}
+                      value={(q.options ?? ['', '', '', ''])[index] ?? ''}
+                      onChange={event => onOptionChange(index, event.target.value)}
                       placeholder={`Option ${letter}`}
                     />
                   </div>
@@ -579,15 +840,20 @@ function QuestionEditor({ q, qIdx, sectionType, sec, onChange, onOptionChange, o
               </div>
               <div style={{ marginTop: 10 }}>
                 <label className="label" htmlFor={`correct-${q._id}`}>Correct Answer</label>
-                <select id={`correct-${q._id}`} className="input" style={{ width: 120 }} value={q.correct_answer} onChange={e => onChange('correct_answer', e.target.value)}>
-                  <option value="">—</option>
-                  {['A', 'B', 'C', 'D'].map(l => <option key={l} value={l}>{l}</option>)}
+                <select
+                  id={`correct-${q._id}`}
+                  className="input"
+                  style={{ width: 120 }}
+                  value={q.correct_answer}
+                  onChange={event => onChange('correct_answer', event.target.value)}
+                >
+                  <option value="">-</option>
+                  {['A', 'B', 'C', 'D'].map(letter => <option key={letter} value={letter}>{letter}</option>)}
                 </select>
               </div>
             </div>
           )}
 
-          {/* Tiles (Build a Sentence) */}
           {showTiles && (
             <div>
               <label className="label" htmlFor={`tiles-${q._id}`}>Word Tiles (comma-separated)</label>
@@ -595,34 +861,62 @@ function QuestionEditor({ q, qIdx, sectionType, sec, onChange, onOptionChange, o
                 id={`tiles-${q._id}`}
                 className="input"
                 value={q.tiles_data}
-                onChange={e => onChange('tiles_data', e.target.value)}
+                onChange={event => onChange('tiles_data', event.target.value)}
                 placeholder="e.g. The, students, are, studying, English"
               />
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Words will be scrambled automatically.</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                Words will be scrambled automatically.
+              </p>
             </div>
           )}
 
-          {/* Audio URLs */}
           {showAudio && (
             <div>
               <label className="label" htmlFor={`audio-${q._id}`}>Audio URL (question audio)</label>
-              <input id={`audio-${q._id}`} className="input" value={q.audio_url} onChange={e => onChange('audio_url', e.target.value)} placeholder="https://…/audio.mp3" />
+              <input
+                id={`audio-${q._id}`}
+                className="input"
+                value={q.audio_url}
+                onChange={event => onChange('audio_url', event.target.value)}
+                placeholder="https://.../audio.mp3"
+              />
             </div>
           )}
+
           {showGroupAudio && (
             <div>
               <label className="label" htmlFor={`gaudio-${q._id}`}>Group Audio URL (shared passage audio)</label>
-              <input id={`gaudio-${q._id}`} className="input" value={q.group_audio_url} onChange={e => onChange('group_audio_url', e.target.value)} placeholder="Shared audio for all questions in this group" />
+              <input
+                id={`gaudio-${q._id}`}
+                className="input"
+                value={q.group_audio_url}
+                onChange={event => onChange('group_audio_url', event.target.value)}
+                placeholder="Shared audio for all questions in this group"
+              />
               <div style={{ marginTop: 8 }}>
                 <label className="label" htmlFor={`gid-${q._id}`}>Group ID</label>
-                <input id={`gid-${q._id}`} className="input" style={{ width: 200 }} value={q.group_id} onChange={e => onChange('group_id', e.target.value)} placeholder="e.g. conv-01" />
+                <input
+                  id={`gid-${q._id}`}
+                  className="input"
+                  style={{ width: 200 }}
+                  value={q.group_id}
+                  onChange={event => onChange('group_id', event.target.value)}
+                  placeholder="e.g. conv-01"
+                />
               </div>
             </div>
           )}
+
           {showSpeakerPhoto && (
             <div>
               <label className="label" htmlFor={`photo-${q._id}`}>Speaker / Interviewer Photo URL</label>
-              <input id={`photo-${q._id}`} className="input" value={q.speaker_photo_url} onChange={e => onChange('speaker_photo_url', e.target.value)} placeholder="https://…/speaker.jpg" />
+              <input
+                id={`photo-${q._id}`}
+                className="input"
+                value={q.speaker_photo_url}
+                onChange={event => onChange('speaker_photo_url', event.target.value)}
+                placeholder="https://.../speaker.jpg"
+              />
             </div>
           )}
         </div>
