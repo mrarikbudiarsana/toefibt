@@ -8,7 +8,7 @@ export default function CTestRenderer({ qId, passage = '', instruction, answers 
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', padding: '4px 10px', background: 'var(--teal-light)', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Questions {questionRange[0]}–{questionRange[1]}
+            Questions {questionRange[0]}{questionRange[1]}
           </span>
         </div>
         <h2 style={{ fontSize: 24, fontWeight: 700, color: '#111', margin: '0 0 8px 0', letterSpacing: '-0.01em', whiteSpace: 'pre-wrap' }}>

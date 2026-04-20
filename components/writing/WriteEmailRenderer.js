@@ -2,11 +2,11 @@
 import { useState } from 'react';
 
 /**
- * Write an Email — Split Layout
+ * Write an Email  Split Layout
  * Left: email prompt / context
  * Right: plain text editor with word count
  *
- * ETS Rubric: 0–5 (AI scored via OpenAI)
+ * ETS Rubric: 05 (AI scored via OpenAI)
  * Timing: ~10 minutes
  */
 export default function WriteEmailRenderer({ prompt = '', context = '', value = '', onChange, questionNumber, totalQuestions }) {
@@ -14,7 +14,7 @@ export default function WriteEmailRenderer({ prompt = '', context = '', value = 
 
   return (
     <div className="split-layout">
-      {/* Left — prompt / context */}
+      {/* Left  prompt / context */}
       <div className="split-pane split-pane--left">
         <div className="split-pane__label">Writing Task {questionNumber} of {totalQuestions}</div>
 
@@ -26,7 +26,7 @@ export default function WriteEmailRenderer({ prompt = '', context = '', value = 
           marginBottom: 20,
         }}>
           <div style={{ background: 'var(--teal)', color: '#fff', padding: '10px 16px', fontSize: 13, fontWeight: 700 }}>
-            📧 Write an Email
+            Write an Email
           </div>
           <div style={{ padding: '16px', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
             {context || 'You have received a message from a friend about a community event. Read the situation and write an appropriate email response.'}
@@ -34,15 +34,15 @@ export default function WriteEmailRenderer({ prompt = '', context = '', value = 
         </div>
 
         <div style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.7, fontWeight: 500 }}>
-          {prompt || 'Directions: Read the situation below and write an email in response. Your response should be 75–100 words.'}
+          {prompt || 'Directions: Read the situation below and write an email in response. Your response should be 75100 words.'}
         </div>
 
         <div style={{ marginTop: 20, padding: '12px 14px', background: 'var(--warning-bg)', borderRadius: 8, border: '1px solid #fcd34d', fontSize: 13, color: 'var(--warning)' }}>
-          ⏱ <strong>~10 minutes</strong> — Write a complete, coherent email.
+           <strong>~10 minutes</strong>  Write a complete, coherent email.
         </div>
       </div>
 
-      {/* Right — editor */}
+      {/* Right  editor */}
       <div className="split-pane split-pane--right" style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div className="split-pane__label" style={{ margin: 0 }}>Your Response</div>
@@ -54,7 +54,7 @@ export default function WriteEmailRenderer({ prompt = '', context = '', value = 
         <textarea
           className="input"
           style={{ flex: 1, minHeight: 380, fontFamily: 'var(--font)', fontSize: 15, lineHeight: 1.7, resize: 'none' }}
-          placeholder="Write your email here…"
+          placeholder="Write your email here"
           value={value}
           onChange={e => onChange(e.target.value)}
           spellCheck={true}
@@ -64,3 +64,4 @@ export default function WriteEmailRenderer({ prompt = '', context = '', value = 
     </div>
   );
 }
+

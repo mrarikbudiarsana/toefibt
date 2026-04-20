@@ -10,7 +10,7 @@ import RadioOptionList from '@/components/shared/RadioOptionList';
  *
  * Architecture (confirmed from ETS screenshots):
  * 1. AUDIO SCREEN: Speaker photo only (large, centered), audio plays, no question visible
- * 2. After audio ends → QUESTION SCREEN: same speaker photo (smaller, left-aligned), question + MCQ
+ * 2. After audio ends   QUESTION SCREEN: same speaker photo (smaller, left-aligned), question + MCQ
  *
  * No Back button. Audio plays ONE TIME only.
  *
@@ -23,8 +23,8 @@ import RadioOptionList from '@/components/shared/RadioOptionList';
  *   selected: string | null
  *   onSelect: (letter) => void
  *   questionNumber: number
- *   totalInGroup: number   — how many Qs share this audio
- *   questionInGroup: number — which Q within this group (1-based)
+ *   totalInGroup: number    how many Qs share this audio
+ *   questionInGroup: number  which Q within this group (1-based)
  */
 export default function ListenAudioFirstRenderer({
   audioUrl,
@@ -52,7 +52,7 @@ export default function ListenAudioFirstRenderer({
   useEffect(() => {
     if (!audioRef.current) return;
     if (questionInGroup === 1) {
-      // First question in group — play audio, then show question
+      // First question in group  play audio, then show question
       setPhase('audio');
       setAudioStatus('loading');
       if (audioUrl) {
@@ -68,7 +68,7 @@ export default function ListenAudioFirstRenderer({
         setPhase('question');
       }
     } else {
-      // Subsequent questions for the same audio — go straight to question
+      // Subsequent questions for the same audio  go straight to question
       setPhase('question');
       setAudioStatus('ended');
     }
@@ -80,7 +80,7 @@ export default function ListenAudioFirstRenderer({
     setTimeout(() => setPhase('question'), 600);
   }
 
-  // ── AUDIO PHASE ────────────────────────────────────────────
+  //  AUDIO PHASE 
   if (phase === 'audio') {
     return (
       <div className="audio-screen">
@@ -110,12 +110,12 @@ export default function ListenAudioFirstRenderer({
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 64, border: '4px solid var(--teal)',
           }}>
-            👤
+            x
           </div>
         )}
 
         {/* Status */}
-        {audioStatus === 'loading' && <p className="audio-label">Preparing audio…</p>}
+        {audioStatus === 'loading' && <p className="audio-label">Preparing audio</p>}
         {audioStatus === 'playing' && (
           <>
             <div className="audio-wave">
@@ -123,19 +123,19 @@ export default function ListenAudioFirstRenderer({
                 <div key={i} className="audio-wave__bar" />
               ))}
             </div>
-            <p className="audio-label">Listening — answer choices will appear when audio ends</p>
+            <p className="audio-label">Listening  answer choices will appear when audio ends</p>
           </>
         )}
         {audioStatus === 'error' && (
           <p style={{ color: 'var(--danger)', fontSize: 14 }}>
-            Audio could not load. Proceeding to question…
+            Audio could not load. Proceeding to question
           </p>
         )}
       </div>
     );
   }
 
-  // ── QUESTION PHASE ─────────────────────────────────────────
+  //  QUESTION PHASE 
   return (
     <div style={{
       maxWidth: 720, margin: '0 auto', padding: '32px 32px',
@@ -154,7 +154,7 @@ export default function ListenAudioFirstRenderer({
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 28, flexShrink: 0,
             border: '2px solid var(--teal)',
-          }}>👤</div>
+          }}>x</div>
         )}
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--teal)' }}>
@@ -184,3 +184,4 @@ export default function ListenAudioFirstRenderer({
     </div>
   );
 }
+

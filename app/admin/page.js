@@ -32,9 +32,9 @@ export default function AdminDashboard() {
   }, []);
 
   const STAT_CARDS = [
-    { label: 'Tests', value: stats.tests, icon: '📝', href: '/admin/tests' },
-    { label: 'Assignments', value: stats.assignments, icon: '📋', href: '/admin/assign' },
-    { label: 'Submissions', value: stats.submissions, icon: '📤', href: '/admin/submissions' },
+    { label: 'Tests', value: stats.tests, icon: 'T', href: '/admin/tests' },
+    { label: 'Assignments', value: stats.assignments, icon: 'A', href: '/admin/assign' },
+    { label: 'Submissions', value: stats.submissions, icon: 'S', href: '/admin/submissions' },
   ];
 
   return (
@@ -42,7 +42,7 @@ export default function AdminDashboard() {
       <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h1 className="page-title">Admin Dashboard</h1>
-          <p className="page-subtitle">TOEFL iBT Platform — English with Arik</p>
+          <p className="page-subtitle">TOEFL iBT Platform  English with Arik</p>
         </div>
         <button className="btn btn--primary" onClick={() => router.push('/admin/tests/create')}>
           + Create New Test
@@ -62,7 +62,7 @@ export default function AdminDashboard() {
           >
             <div style={{ fontSize: 36, marginBottom: 8 }}>{s.icon}</div>
             <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--teal)' }}>
-              {loading ? '…' : s.value}
+              {loading ? '' : s.value}
             </div>
             <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>{s.label}</div>
           </div>
@@ -74,11 +74,11 @@ export default function AdminDashboard() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <h2 style={{ fontSize: 16, fontWeight: 700 }}>Recent Submissions</h2>
           <button className="btn btn--ghost btn--sm" onClick={() => router.push('/admin/submissions')}>
-            View all →
+            View all  
           </button>
         </div>
         {loading ? (
-          <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Loading…</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Loading</p>
         ) : recentSubs.length === 0 ? (
           <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>No submissions yet.</p>
         ) : (
@@ -94,7 +94,7 @@ export default function AdminDashboard() {
             <tbody>
               {recentSubs.map(sub => (
                 <tr key={sub.id}>
-                  <td style={{ fontWeight: 600 }}>{sub.test_assignments?.tests?.title ?? '—'}</td>
+                  <td style={{ fontWeight: 600 }}>{sub.test_assignments?.tests?.title ?? ''}</td>
                   <td>{new Date(sub.submitted_at).toLocaleDateString()}</td>
                   <td>
                     <span className={`badge ${sub.status === 'graded' ? 'badge--green' : sub.status === 'submitted' ? 'badge--teal' : 'badge--warn'}`}>
@@ -115,3 +115,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
+

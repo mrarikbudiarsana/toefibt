@@ -36,10 +36,10 @@ export default function AdminTestsPage() {
       </div>
 
       {loading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Loading tests…</p>
+        <p style={{ color: 'var(--text-muted)' }}>Loading tests</p>
       ) : tests.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '60px 24px' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📝</div>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>x</div>
           <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>No tests yet</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 20 }}>Create your first TOEFL iBT mock test.</p>
           <button className="btn btn--primary" onClick={() => router.push('/admin/tests/create')}>Create Test</button>
@@ -81,3 +81,4 @@ export default function AdminTestsPage() {
     </div>
   );
 }
+

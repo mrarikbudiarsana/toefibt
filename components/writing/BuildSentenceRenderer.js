@@ -2,12 +2,12 @@
 import { useState, useRef } from 'react';
 
 /**
- * Build a Sentence — Drag & Drop Word Tiles
+ * Build a Sentence  Drag & Drop Word Tiles
  * Student receives scrambled word tiles and drags them into order.
  *
  * Props:
- *   tiles: string[]       — scrambled words
- *   answer: string[]      — current ordered answer (array of words)
+ *   tiles: string[]        scrambled words
+ *   answer: string[]       current ordered answer (array of words)
  *   onAnswer: (orderedTiles: string[]) => void
  */
 export default function BuildSentenceRenderer({ tiles = [], answer = [], onAnswer, questionNumber, totalQuestions }) {
@@ -92,7 +92,7 @@ export default function BuildSentenceRenderer({ tiles = [], answer = [], onAnswe
         style={{ minHeight: 60, marginBottom: 24 }}
       >
         {arranged.length === 0 && (
-          <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>Drag words here to build your sentence…</span>
+          <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>Drag words here to build your sentence</span>
         )}
         {arranged.map((word, i) => (
           <div
@@ -118,7 +118,7 @@ export default function BuildSentenceRenderer({ tiles = [], answer = [], onAnswe
         onDrop={handleDropOnPool}
       >
         {pool.length === 0 && (
-          <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>All words placed ✓</span>
+          <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>All words placed </span>
         )}
         {pool.map((word, i) => (
           <div

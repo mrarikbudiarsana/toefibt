@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 
 /**
- * Listen and Repeat — Speaking Task
+ * Listen and Repeat  Speaking Task
  * Flow:
  *   1. Audio plays (sentence/phrase)
  *   2. Countdown (3 seconds) before recording starts
@@ -11,7 +11,7 @@ import { useState, useRef, useEffect } from 'react';
  *
  * Props:
  *   audioUrl: string
- *   prompt: string          — the text to repeat (shown during recording)
+ *   prompt: string           the text to repeat (shown during recording)
  *   maxRecordSeconds: number
  *   onRecordingReady: (blob: Blob) => void
  */
@@ -100,13 +100,13 @@ export default function ListenRepeatRenderer({ audioUrl, prompt = '', maxRecordS
         style={{ display: 'none' }}
       />
 
-      {/* ── AUDIO PHASE ── */}
+      {/*  AUDIO PHASE  */}
       {phase === 'audio' && (
         <>
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--teal)', marginBottom: 8 }}>
             Listen and Repeat
           </div>
-          <div style={{ fontSize: 56 }}>🎧</div>
+          <div style={{ fontSize: 28, fontWeight: 700 }}>Audio</div>
           <p style={{ fontWeight: 600, fontSize: 18, marginTop: 8 }}>Listen carefully</p>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14, maxWidth: 360, textAlign: 'center', lineHeight: 1.6 }}>
             You will hear a sentence. You will then repeat it as accurately as possible.
@@ -117,7 +117,7 @@ export default function ListenRepeatRenderer({ audioUrl, prompt = '', maxRecordS
         </>
       )}
 
-      {/* ── COUNTDOWN PHASE ── */}
+      {/*  COUNTDOWN PHASE  */}
       {phase === 'countdown' && (
         <>
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--teal)', marginBottom: 8 }}>
@@ -132,16 +132,16 @@ export default function ListenRepeatRenderer({ audioUrl, prompt = '', maxRecordS
           }}>
             {countdown}
           </div>
-          <p style={{ fontWeight: 600, fontSize: 18 }}>Recording starts in…</p>
+          <p style={{ fontWeight: 600, fontSize: 18 }}>Recording starts in</p>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Prepare to repeat what you heard.</p>
         </>
       )}
 
-      {/* ── RECORDING PHASE ── */}
+      {/*  RECORDING PHASE  */}
       {phase === 'recording' && (
         <>
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--danger)', marginBottom: 8 }}>
-            🔴 Recording
+            x Recording
           </div>
           <button className="record-btn recording" onClick={stopRecording} aria-label="Stop recording">
             <div style={{ width: 24, height: 24, background: '#fff', borderRadius: 4 }} />
@@ -170,10 +170,10 @@ export default function ListenRepeatRenderer({ audioUrl, prompt = '', maxRecordS
         </>
       )}
 
-      {/* ── DONE PHASE ── */}
+      {/*  DONE PHASE  */}
       {phase === 'done' && (
         <>
-          <div style={{ fontSize: 48 }}>✅</div>
+          <div style={{ fontSize: 28, fontWeight: 700 }}>Done</div>
           <p style={{ fontWeight: 700, fontSize: 18 }}>Recording saved</p>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Your response has been recorded.</p>
           {playbackUrl && (
@@ -190,3 +190,4 @@ export default function ListenRepeatRenderer({ audioUrl, prompt = '', maxRecordS
     </div>
   );
 }
+

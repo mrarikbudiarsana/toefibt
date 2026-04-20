@@ -47,10 +47,10 @@ export default function SubmissionsPage() {
       </div>
 
       {loading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Loading submissions…</p>
+        <p style={{ color: 'var(--text-muted)' }}>Loading submissions</p>
       ) : filtered.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '60px 24px' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>x</div>
           <h2 style={{ fontSize: 18, fontWeight: 700 }}>No submissions</h2>
         </div>
       ) : (
@@ -78,21 +78,21 @@ export default function SubmissionsPage() {
 
               return (
                 <tr key={sub.id}>
-                  <td style={{ fontWeight: 600 }}>{sub.test_assignments?.tests?.title ?? '—'}</td>
+                  <td style={{ fontWeight: 600 }}>{sub.test_assignments?.tests?.title ?? ''}</td>
                   <td>{new Date(sub.submitted_at).toLocaleDateString()}</td>
                   {['reading', 'listening', 'writing', 'speaking'].map(sec => (
                     <td key={sec}>
                       {bands[sec] != null ? (
                         <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{bands[sec]}</span>
                       ) : (
-                        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}></span>
                       )}
                     </td>
                   ))}
                   <td>
                     {overall ? (
                       <span style={{ fontWeight: 800, color: 'var(--teal)', fontSize: 16 }}>{overall}</span>
-                    ) : '—'}
+                    ) : ''}
                   </td>
                   <td>
                     <span className={`badge ${sub.status === 'graded' ? 'badge--green' : sub.status === 'submitted' ? 'badge--teal' : 'badge--warn'}`}>
@@ -101,7 +101,7 @@ export default function SubmissionsPage() {
                   </td>
                   <td>
                     <button className="btn btn--ghost btn--sm" onClick={() => router.push(`/admin/submissions/${sub.id}`)}>
-                      Review →
+                      Review  
                     </button>
                   </td>
                 </tr>
@@ -113,3 +113,4 @@ export default function SubmissionsPage() {
     </div>
   );
 }
+

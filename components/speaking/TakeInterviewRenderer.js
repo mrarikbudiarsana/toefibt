@@ -2,10 +2,10 @@
 import { useState, useRef } from 'react';
 
 /**
- * Take an Interview — Speaking Task
+ * Take an Interview  Speaking Task
  * Flow:
  *   1. Interviewer photo + question shown
- *   2. Preparation countdown (15–30 seconds)
+ *   2. Preparation countdown (1530 seconds)
  *   3. Record answer (max 45 seconds)
  *   4. Playback available
  *
@@ -94,12 +94,12 @@ export default function TakeInterviewRenderer({
           <img src={interviewerPhotoUrl} alt={interviewerName} className="speaker-photo" style={{ width: 64, height: 64, borderRadius: '50%', border: '3px solid var(--teal)', objectFit: 'cover', flexShrink: 0 }} />
         ) : (
           <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, var(--teal), var(--teal-dark))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, flexShrink: 0, border: '3px solid var(--teal)' }}>
-            👩‍💼
+            xx
           </div>
         )}
         <div>
           <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{interviewerName}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>TOEFL iBT Interviewer · Question {questionNumber} of {totalQuestions}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>TOEFL iBT Interviewer  Question {questionNumber} of {totalQuestions}</div>
         </div>
         <div style={{ marginLeft: 'auto' }}>
           <span className="badge badge--teal" style={{ fontSize: 11, textTransform: 'uppercase' }}>Take an Interview</span>
@@ -116,19 +116,19 @@ export default function TakeInterviewRenderer({
         {question || 'Tell me about a time when you had to overcome a challenge. What did you do, and what did you learn from the experience?'}
       </div>
 
-      {/* ── QUESTION PHASE ── */}
+      {/*  QUESTION PHASE  */}
       {phase === 'question' && (
         <div style={{ textAlign: 'center' }}>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 20, lineHeight: 1.6 }}>
             Read the question above. You will have <strong>{prepSeconds} seconds</strong> to prepare, then <strong>{maxRecordSeconds} seconds</strong> to speak.
           </p>
           <button className="btn btn--primary btn--lg" onClick={startPrep}>
-            Begin — Start Preparation Timer →
+            Begin  Start Preparation Timer  
           </button>
         </div>
       )}
 
-      {/* ── PREP PHASE ── */}
+      {/*  PREP PHASE  */}
       {phase === 'prep' && (
         <div style={{ textAlign: 'center' }}>
           <div style={{ marginBottom: 16, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--teal)' }}>
@@ -149,16 +149,16 @@ export default function TakeInterviewRenderer({
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Organize your thoughts. Recording starts automatically.</p>
           <button className="btn btn--outline btn--sm" style={{ marginTop: 16 }} onClick={startRecording}>
-            Skip — Start Recording Now
+            Skip  Start Recording Now
           </button>
         </div>
       )}
 
-      {/* ── RECORDING PHASE ── */}
+      {/*  RECORDING PHASE  */}
       {phase === 'recording' && (
         <div style={{ textAlign: 'center' }}>
           <div style={{ marginBottom: 12, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--danger)' }}>
-            🔴 Recording your answer
+            x Recording your answer
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', maxWidth: 300, margin: '0 auto 8px' }}>
             <span>{recordSeconds}s elapsed</span>
@@ -174,10 +174,10 @@ export default function TakeInterviewRenderer({
         </div>
       )}
 
-      {/* ── DONE PHASE ── */}
+      {/*  DONE PHASE  */}
       {phase === 'done' && (
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+          <div style={{ fontSize: 28, marginBottom: 12, fontWeight: 700 }}>Done</div>
           <p style={{ fontWeight: 700, fontSize: 18, marginBottom: 6 }}>Response recorded</p>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 20 }}>Your speaking response has been saved.</p>
           {playbackUrl && (
@@ -194,3 +194,4 @@ export default function TakeInterviewRenderer({
     </div>
   );
 }
+

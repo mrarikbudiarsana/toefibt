@@ -58,7 +58,7 @@ export default function ToeflNavbar({
       {/* Main navbar */}
       <nav className="ets-navbar" role="banner">
         <div className="ets-navbar__left">
-          <span className="ets-navbar__logo">TOEFL iBT®</span>
+          <span className="ets-navbar__logo">TOEFL iBT</span>
           {sectionName && (
             <span className="ets-navbar__section">{sectionName}</span>
           )}
@@ -80,7 +80,7 @@ export default function ToeflNavbar({
                 title="Adjust volume"
                 type="button"
               >
-                🔊 Volume
+                Volume
               </button>
               {showVolumePanel && (
                 <div
@@ -115,7 +115,7 @@ export default function ToeflNavbar({
           )}
           {timeStr && (
             <div className="ets-navbar__timer" aria-label={`Time remaining: ${timeStr}`}>
-              ⏱ {timeStr}
+               {timeStr}
             </div>
           )}
           <button
@@ -160,7 +160,7 @@ export default function ToeflNavbar({
                 onClick={onBack}
                 aria-label="Previous question"
               >
-                ← Back
+                Back
               </button>
             )}
             <button
@@ -169,7 +169,7 @@ export default function ToeflNavbar({
               disabled={nextDisabled}
               aria-label="Next question"
             >
-              {nextLabel} →
+              {nextLabel}
             </button>
           </div>
         </div>
@@ -177,3 +177,4 @@ export default function ToeflNavbar({
     </>
   );
 }
+

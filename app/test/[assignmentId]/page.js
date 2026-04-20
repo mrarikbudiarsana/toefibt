@@ -8,7 +8,6 @@ import CTestRenderer from '@/components/reading/CTestRenderer';
 import ReadDailyLifeRenderer from '@/components/reading/ReadDailyLifeRenderer';
 import ReadAcademicRenderer from '@/components/reading/ReadAcademicRenderer';
 import ListenChooseRenderer from '@/components/listening/ListenChooseRenderer';
-import ListenAudioFirstRenderer from '@/components/listening/ListenAudioFirstRenderer';
 import ListenConversationQuestionRenderer from '@/components/listening/ListenConversationQuestionRenderer';
 import ListenGroupAudioIntro from '@/components/listening/ListenGroupAudioIntro';
 import BuildSentenceRenderer from '@/components/writing/BuildSentenceRenderer';
@@ -18,12 +17,12 @@ import ListenRepeatRenderer from '@/components/speaking/ListenRepeatRenderer';
 import TakeInterviewRenderer from '@/components/speaking/TakeInterviewRenderer';
 import { getReadingMSTPath, getListeningMSTPath, getModuleQuestions, computeRawScore } from '@/lib/mst';
 
-// ── Section order per ETS Jan 2026 format ──
+//  Section order per ETS Jan 2026 format 
 const SECTION_ORDER = ['reading', 'listening', 'writing', 'speaking'];
 const SECTION_LABELS = { reading: 'Reading', listening: 'Listening', writing: 'Writing', speaking: 'Speaking' };
 
-// ── Screen states ──
-// intro → module_intro → question → module_end → section_end
+//  Screen states 
+// intro   module_intro   question   module_end   section_end
 const TIMER_DEFAULTS = { reading: 36 * 60, listening: 36 * 60, writing: 29 * 60, speaking: 16 * 60 };
 
 function toPassageText(passage) {
@@ -59,12 +58,12 @@ export default function TestPage() {
   const router = useRouter();
   const supabase = createClient();
 
-  // ── Loading ──────────────────────────────────────────────
+  //  Loading 
   const [testData, setTestData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // ── Test State ───────────────────────────────────────────
+  //  Test State 
   const [sectionIdx, setSectionIdx] = useState(0);
   const [screen, setScreen] = useState('intro'); // intro | module_intro | listening_audio_intro | question | module_end | section_end | done
   const [currentModule, setCurrentModule] = useState('module1'); // module1 | module2_easy | module2_hard
@@ -76,12 +75,12 @@ export default function TestPage() {
   const [mstPaths, setMstPaths] = useState({}); // {reading: 'hard', listening: 'easy'}
   const [module1Answers, setModule1Answers] = useState({});
 
-  // ── Timer ────────────────────────────────────────────────
+  //  Timer 
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [timerRunning, setTimerRunning] = useState(false);
   const timerRef = useRef(null);
 
-  // ── UI ───────────────────────────────────────────────────
+  //  UI 
   const [mustAnswerModal, setMustAnswerModal] = useState(false);
   const [audioEnded, setAudioEnded] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -94,6 +93,17 @@ export default function TestPage() {
   const section = SECTION_ORDER[sectionIdx];
   const sectionLabel = SECTION_LABELS[section] ?? '';
   const currentQuestion = questions[questionIdx] ?? null;
+  const currentQuestionId = currentQuestion?.id ?? null;
+  const currentTaskType = currentQuestion?.task_type ?? null;
+  const currentGroupId = currentQuestion?.group_id ?? '';
+  const currentGroupAudioUrl = currentQuestion?.group_audio_url ?? '';
+  const currentAudioUrl = currentQuestion?.audio_url ?? '';
+  const currentSpeakerPhotoUrl = currentQuestion?.speaker_photo_url ?? '';
+  const currentListenChooseAudioEnded = currentQuestionId ? Boolean(audioEnded[currentQuestionId]) : false;
+  const questionsGroupSignature = questions
+    .map(question => `${question.id}:${question.task_type || ''}:${question.group_id || ''}:${question.group_audio_url || ''}:${question.audio_url || ''}`)
+    .join('|');
+  const playedGroupSignature = Object.keys(playedConversationGroups).sort().join('|');
 
   // Keep all media elements synced with navbar volume state.
   useEffect(() => {
@@ -121,7 +131,7 @@ export default function TestPage() {
 
   function isConversationFlowQuestion(question) {
     if (!question) return false;
-    if (question.task_type === 'listen_conversation') return true;
+    if (['listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(question.task_type)) return true;
     // Backward-compatible fallback: some conversation items were stored as listen_choose_response
     return question.task_type === 'listen_choose_response' && Boolean(String(question.group_audio_url || '').trim());
   }
@@ -132,14 +142,33 @@ export default function TestPage() {
     const isTimedListeningQuestion =
       screen === 'question' &&
       section === 'listening' &&
-      ['listen_choose_response', 'listen_conversation'].includes(currentQuestion?.task_type);
+      ['listen_choose_response', 'listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(currentTaskType);
 
     if (!isTimedListeningQuestion) {
       setListenChooseCountdown(null);
       return;
     }
 
-    const seconds = isConversationFlowQuestion(currentQuestion) ? 15 : 10;
+    const isPlainListenChoose =
+      currentTaskType === 'listen_choose_response' &&
+      !isConversationFlowQuestion(currentQuestion);
+    const listenChooseAudioEnded = isPlainListenChoose
+      ? currentListenChooseAudioEnded
+      : true;
+
+    // For Listen and Choose, start countdown only after the prompt audio finishes.
+    if (!listenChooseAudioEnded) {
+      setListenChooseCountdown(null);
+      return;
+    }
+
+    const secondsByTask = {
+      listen_choose_response: 15,
+      listen_conversation: 20,
+      listen_announcement: 20,
+      listen_academic_talk: 25,
+    };
+    const seconds = secondsByTask[currentTaskType] ?? 15;
     setListenChooseCountdown(seconds);
     listenChooseTimerRef.current = setInterval(() => {
       setListenChooseCountdown(prev => {
@@ -156,7 +185,7 @@ export default function TestPage() {
     }, 1000);
 
     return () => clearListenChooseTimer();
-  }, [screen, section, currentQuestion?.id, currentQuestion?.task_type]);
+  }, [screen, section, currentQuestionId, currentTaskType, currentGroupAudioUrl, currentListenChooseAudioEnded]);
 
   useEffect(() => {
     const isListeningQuestionScreen =
@@ -174,27 +203,27 @@ export default function TestPage() {
 
     setPendingConversationAudio({
       groupKey,
-      audioUrl: currentQuestion.group_audio_url ?? currentQuestion.audio_url ?? '',
-      speakerPhotoUrl: currentQuestion.speaker_photo_url ?? '',
+      directionsAudioUrl: currentGroupAudioUrl,
+      contentAudioUrl: currentAudioUrl,
+      speakerPhotoUrl: currentSpeakerPhotoUrl,
     });
     setScreen('listening_audio_intro');
   }, [
     screen,
     section,
     questionIdx,
-    questions,
-    currentQuestion?.id,
-    currentQuestion?.task_type,
-    currentQuestion?.group_id,
-    currentQuestion?.group_audio_url,
-    currentQuestion?.audio_url,
-    currentQuestion?.speaker_photo_url,
+    questionsGroupSignature,
+    currentQuestionId,
+    currentTaskType,
+    currentGroupId,
+    currentGroupAudioUrl,
+    currentAudioUrl,
+    currentSpeakerPhotoUrl,
     currentModule,
-    playedConversationGroups,
-    currentQuestion,
+    playedGroupSignature,
   ]);
 
-  // ── Load test data ────────────────────────────────────────
+  //  Load test data 
   useEffect(() => {
     if (!assignmentId) return;
     (async () => {
@@ -230,7 +259,7 @@ export default function TestPage() {
     })();
   }, [assignmentId]);
 
-  // ── Timer ────────────────────────────────────────────────
+  //  Timer 
   useEffect(() => {
     if (!timerRunning || timeRemaining == null) return;
     timerRef.current = setInterval(() => {
@@ -242,7 +271,7 @@ export default function TestPage() {
     return () => clearInterval(timerRef.current);
   }, [timerRunning]);
 
-  // ── Helpers ───────────────────────────────────────────────
+  //  Helpers 
   function getSectionData(s) {
     const sections = testData?.tests?.test_sections ?? [];
     return sections.find(sec => sec.section_type === s);
@@ -262,7 +291,7 @@ export default function TestPage() {
       .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
   }
 
-  // ── Start a section ────────────────────────────────────────
+  //  Start a section 
   function startSection(secName) {
     const qs = loadModuleQuestions(secName, 'module1');
     setQuestions(qs);
@@ -278,7 +307,7 @@ export default function TestPage() {
     setTimerRunning(true);
   }
 
-  // ── Navigate questions ─────────────────────────────────────
+  //  Navigate questions 
   function goNext() {
     clearListenChooseTimer();
     const isListening = section === 'listening';
@@ -315,7 +344,7 @@ export default function TestPage() {
     if (questionIdx > 0) setQuestionIdx(i => i - 1);
   }
 
-  // ── Module end logic (MST routing) ─────────────────────────
+  //  Module end logic (MST routing) 
   function handleModuleEnd() {
     const sec = getSectionData(section);
     const hasMST = sec?.has_mst;
@@ -372,7 +401,7 @@ export default function TestPage() {
     }
   }
 
-  // ── Submit ─────────────────────────────────────────────────
+  //  Submit 
   async function handleSubmit() {
     setSubmitting(true);
     try {
@@ -408,7 +437,7 @@ export default function TestPage() {
     }
   }
 
-  // ── Computed navbar props ──────────────────────────────────
+  //  Computed navbar props 
   const isReadingSection = section === 'reading';
   const isListeningSection = section === 'listening';
   const isQuestionScreen = screen === 'question';
@@ -418,7 +447,7 @@ export default function TestPage() {
   const questionCountdown = (
     section === 'listening' &&
     isQuestionScreen &&
-    ['listen_choose_response', 'listen_conversation'].includes(currentQuestion?.task_type)
+    ['listen_choose_response', 'listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(currentQuestion?.task_type)
   ) ? listenChooseCountdown : null;
 
   const counterText = (() => {
@@ -439,13 +468,13 @@ export default function TestPage() {
 
     if (q.task_type === 'c_test') {
       const currentEnd = currentStart + 9;
-      return `Questions ${currentStart}–${currentEnd} of ${totalQuestions}`;
+      return `Questions ${currentStart}-${currentEnd} of ${totalQuestions}`;
     }
 
     return `Question ${currentStart} of ${totalQuestions}`;
   })();
 
-  // ── Render question ────────────────────────────────────────
+  //  Render question 
   function renderQuestion() {
     if (!currentQuestion) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No questions found for this module.</div>;
 
@@ -532,21 +561,6 @@ export default function TestPage() {
         />
       );
     }
-    if (['listen_announcement', 'listen_academic_talk'].includes(task_type)) {
-      return (
-        <ListenAudioFirstRenderer
-          audioUrl={group_audio_url ?? audio_url}
-          speakerPhotoUrl={speaker_photo_url}
-          taskType={task_type}
-          question={prompt}
-          options={options}
-          selected={selected}
-          onSelect={onSelect}
-          questionNumber={questionIdx + 1}
-        />
-      );
-    }
-
     // Writing
     if (task_type === 'build_sentence') {
       const tiles = tiles_data ? (typeof tiles_data === 'string' ? JSON.parse(tiles_data) : tiles_data) : [];
@@ -608,68 +622,92 @@ export default function TestPage() {
     return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Unknown task type: {task_type}</div>;
   }
 
-  // ── Early returns ──────────────────────────────────────────
-  if (loading) return <FullScreenMessage>Loading your test…</FullScreenMessage>;
+  //  Early returns 
+  if (loading) return <FullScreenMessage>Loading your test</FullScreenMessage>;
   if (error) return <FullScreenMessage error>{error}</FullScreenMessage>;
 
   if (!testData?.tests) return <FullScreenMessage>Test not found.</FullScreenMessage>;
 
-  // ── INTRO SCREEN ───────────────────────────────────────────
+  //  INTRO SCREEN (Start Page)
   if (screen === 'intro') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+      <div className="premium-bg" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <ToeflNavbar sectionName="" showSubbar={false} showVolume={false} />
-        <div className="card" style={{ maxWidth: 560, textAlign: 'center', padding: '48px 40px', marginTop: 60 }}>
-          <div style={{ fontSize: 52, marginBottom: 16 }}>📋</div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>{testData.tests.title ?? 'TOEFL iBT Mock Test'}</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.7, marginBottom: 28 }}>
-            This test has 4 sections: Reading, Listening, Writing, and Speaking.<br />
-            Total time: approximately <strong>117 minutes</strong>.
+        <div className="glass-card" style={{ maxWidth: 640, width: '100%', textAlign: 'center', marginTop: 40 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--teal)', marginBottom: 12 }}>
+            Secure Examination Platform
+          </div>
+          <h1 style={{ fontSize: 42, fontWeight: 800, marginBottom: 12, color: 'var(--deep-navy)', letterSpacing: '-0.02em' }}>
+            {testData.tests.title ?? 'TOEFL iBT Mock Test'}
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 16, lineHeight: 1.6, marginBottom: 40, maxWidth: 480, marginInline: 'auto' }}>
+            This comprehensive evaluation measures your proficiency across all four linguistic domains.
+            Total duration: approximately <strong>117 minutes</strong>.
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28, textAlign: 'left' }}>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 40, textAlign: 'left' }}>
             {[
-              { label: '📖 Reading', time: '~36 min', info: 'Adaptive — 2 modules' },
-              { label: '🎧 Listening', time: '~36 min', info: 'Adaptive — 2 modules' },
-              { label: '✍️ Writing', time: '~29 min', info: 'Email + Discussion' },
-              { label: '🗣️ Speaking', time: '~16 min', info: 'Repeat + Interview' },
+              { label: 'Reading', time: '36 min', info: 'Adaptive', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> },
+              { label: 'Listening', time: '36 min', info: 'Adaptive', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg> },
+              { label: 'Writing', time: '29 min', info: '2 Tasks', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> },
+              { label: 'Speaking', time: '16 min', info: '2 Tasks', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> },
             ].map(s => (
-              <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
-                <span style={{ fontWeight: 600, fontSize: 14 }}>{s.label}</span>
-                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{s.info} · {s.time}</span>
+              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', background: 'rgba(255,255,255,0.5)', borderRadius: 12, border: '1px solid rgba(13, 115, 119, 0.1)' }}>
+                <div style={{ color: 'var(--teal)', display: 'flex' }}>{s.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--deep-navy)' }}>{s.label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.info} &middot; {s.time}</div>
+                </div>
               </div>
             ))}
           </div>
-          <button className="btn btn--primary btn--lg btn--full" onClick={() => { setSectionIdx(0); startSection('reading'); }}>
-            Begin Test →
+
+          <button className="btn-premium" style={{ width: '100%', fontSize: 16 }} onClick={() => { setSectionIdx(0); startSection('reading'); }}>
+            Begin Examination
           </button>
         </div>
       </div>
     );
   }
 
-  // ── MODULE INTRO SCREEN ────────────────────────────────────
+  //  SECTION DIRECTIONS SCREEN
   if (screen === 'module_intro') {
     const moduleLabel = currentModule === 'module1' ? 'Module 1' : (mstPaths[section] === 'hard' ? 'Module 2 (Advanced)' : 'Module 2 (Standard)');
     const isListening = section === 'listening';
+
+    const sectionIcon = {
+      reading: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
+      listening: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>,
+      writing: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>,
+      speaking: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    }[section];
+
     return (
-      <div className="test-layout--no-subbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <div className="premium-bg" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <ToeflNavbar sectionName={sectionLabel} showSubbar={false} showVolume={false} />
-        <div className="card" style={{ maxWidth: 520, textAlign: 'center', padding: '48px 40px', marginTop: 60 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--teal)', marginBottom: 12 }}>
-            {sectionLabel} Section · {moduleLabel}
+        <div className="glass-card" style={{ maxWidth: 560, width: '100%', textAlign: 'center', marginTop: 40 }}>
+          <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'center', color: 'var(--teal)' }}>
+            {sectionIcon}
           </div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 16 }}>Section Directions</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.75, marginBottom: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--teal)', marginBottom: 8 }}>
+            {sectionLabel} Section &middot; {moduleLabel}
+          </div>
+          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 16, color: 'var(--deep-navy)' }}>Section Directions</h2>
+          <div style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.75, marginBottom: 32, textAlign: 'left', background: 'rgba(0,0,0,0.03)', padding: 20, borderRadius: 12 }}>
             {section === 'reading' && 'This section measures your ability to understand written academic English. Read each passage and answer the questions.'}
-            {section === 'listening' && <>
-              This section measures your ability to understand spoken English.<br /><br />
-              <strong>IMPORTANT:</strong> You will <u>NOT</u> be able to return to previous questions. You must answer each question before moving on.
-            </>}
+            {section === 'listening' && (
+              <>
+                This section measures your ability to understand spoken English.
+                <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--warning-bg)', borderLeft: '3px solid var(--warning)', borderRadius: 4, color: 'var(--text-primary)', fontSize: 13, fontWeight: 500 }}>
+                  IMPORTANT: You will NOT be able to return to previous questions. You must answer each question before moving on.
+                </div>
+              </>
+            )}
             {section === 'writing' && 'This section measures your ability to write in English. Complete each writing task using the editor provided.'}
             {section === 'speaking' && 'This section measures your ability to speak in English. Listen carefully and record your responses when prompted.'}
-          </p>
-          <button className="btn btn--primary btn--lg btn--full" onClick={beginModule}>
-            {isListening ? 'Begin Listening →' : 'Begin →'}
+          </div>
+          <button className="btn-premium" style={{ width: '100%' }} onClick={beginModule}>
+            {isListening ? 'Begin Listening Part' : 'Begin Section'}
           </button>
         </div>
       </div>
@@ -689,12 +727,13 @@ export default function TestPage() {
           showSubbar={true}
           showBack={false}
           showNext={false}
-          subbarInfo={`${sectionLabel} — ${currentModule === 'module1' ? 'Module 1' : (mstPaths[section] === 'hard' ? 'Module 2 Advanced' : 'Module 2 Standard')}`}
+          subbarInfo={`${sectionLabel} - ${currentModule === 'module1' ? 'Module 1' : (mstPaths[section] === 'hard' ? 'Module 2 Advanced' : 'Module 2 Standard')}`}
         />
         <div className="test-layout">
           <ListenGroupAudioIntro
             key={pendingConversationAudio?.groupKey ?? `${questionIdx}`}
-            audioUrl={pendingConversationAudio?.audioUrl ?? ''}
+            directionsAudioUrl={pendingConversationAudio?.directionsAudioUrl ?? ''}
+            contentAudioUrl={pendingConversationAudio?.contentAudioUrl ?? ''}
             speakerPhotoUrl={pendingConversationAudio?.speakerPhotoUrl ?? ''}
             onFinished={finishConversationAudioIntro}
           />
@@ -703,54 +742,74 @@ export default function TestPage() {
     );
   }
 
-  // ── MODULE END (MST transition) ────────────────────────────
+  //  MODULE END (MST transition) 
   if (screen === 'module_end') {
     return (
-      <div className="test-layout--no-subbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <div className="premium-bg" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <ToeflNavbar sectionName={sectionLabel} showSubbar={false} showVolume={false} />
-        <div className="card" style={{ maxWidth: 520, textAlign: 'center', padding: '48px 40px', marginTop: 60 }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 12 }}>Module 1 Complete</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.7, marginBottom: 28 }}>
-            You have completed Module 1 of the {sectionLabel} section. The second module will now begin. The question counter will reset.
+        <div className="glass-card" style={{ maxWidth: 520, width: '100%', textAlign: 'center', marginTop: 40 }}>
+          <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'center' }}>
+            <div style={{ padding: 20, background: 'var(--teal-light)', borderRadius: '50%' }}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--teal)', marginBottom: 16 }}>
+            Phase Complete
+          </div>
+          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 12, color: 'var(--deep-navy)' }}>Module 1 Finished</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.6, marginBottom: 32 }}>
+            You have successfully completed the first module of the {sectionLabel} section. 
+            The second module will now begin with adjusted difficulty.
           </p>
-          <button className="btn btn--primary btn--lg btn--full" onClick={startModule2}>
-            Continue to Module 2 →
+          <button className="btn-premium" style={{ width: '100%' }} onClick={startModule2}>
+            Continue to Module 2
           </button>
         </div>
       </div>
     );
   }
 
-  // ── SECTION END ────────────────────────────────────────────
+  //  SECTION END (Completed Page)
   if (screen === 'section_end') {
     const isLast = sectionIdx === SECTION_ORDER.length - 1;
     return (
-      <div className="test-layout--no-subbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <div className="premium-bg" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <ToeflNavbar sectionName={sectionLabel} showSubbar={false} showVolume={false} />
-        <div className="card" style={{ maxWidth: 520, textAlign: 'center', padding: '48px 40px', marginTop: 60 }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>{isLast ? '🎉' : '✅'}</div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 12 }}>
-            {isLast ? 'Test Complete!' : `${sectionLabel} Section Complete`}
+        <div className="glass-card" style={{ maxWidth: 520, width: '100%', textAlign: 'center', marginTop: 40 }}>
+          <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'center' }}>
+            <div style={{ padding: 20, background: 'var(--success-bg)', borderRadius: '50%' }}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+          </div>
+          
+          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: isLast ? 'var(--accent-gold)' : 'var(--teal)', marginBottom: 16 }}>
+            {isLast ? 'Examination Finalized' : `Progress: Section ${sectionIdx + 1} of 4`}
+          </div>
+
+          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 12, color: 'var(--deep-navy)' }}>
+            {isLast ? 'Test Completed' : `${sectionLabel} Finished`}
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.7, marginBottom: 28 }}>
+          
+          <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.6, marginBottom: 32 }}>
             {isLast
-              ? 'You have completed all sections of the TOEFL iBT mock test. Your responses are being submitted.'
-              : `You have completed the ${sectionLabel} section. Click Continue to begin the next section.`}
+              ? 'Your responses have been securely recorded. You may now proceed to view your preliminary score report.'
+              : `Great work. You have completed the ${sectionLabel} section. Please proceed to the next stage of the examination.`}
           </p>
+
           <button
-            className="btn btn--primary btn--lg btn--full"
+            className="btn-premium"
+            style={{ width: '100%' }}
             onClick={advanceSection}
             disabled={submitting}
           >
-            {isLast ? (submitting ? 'Submitting…' : 'View Results →') : `Continue to ${SECTION_LABELS[SECTION_ORDER[sectionIdx + 1]]} →`}
+            {isLast ? (submitting ? 'Processing...' : 'View Score Report') : `Proceed to ${SECTION_LABELS[SECTION_ORDER[sectionIdx + 1]]}`}
           </button>
         </div>
       </div>
     );
   }
 
-  // ── QUESTION SCREEN ────────────────────────────────────────
+  //  QUESTION SCREEN 
   return (
     <div style={{ minHeight: '100vh' }}>
       <ToeflNavbar
@@ -768,7 +827,7 @@ export default function TestPage() {
         nextLabel={questionIdx >= questions.length - 1 ? 'Next Section' : 'Next'}
         nextDisabled={false}
         questionCountdown={questionCountdown}
-        subbarInfo={`${sectionLabel} — ${currentModule === 'module1' ? 'Module 1' : (mstPaths[section] === 'hard' ? 'Module 2 Advanced' : 'Module 2 Standard')}`}
+        subbarInfo={`${sectionLabel} - ${currentModule === 'module1' ? 'Module 1' : (mstPaths[section] === 'hard' ? 'Module 2 Advanced' : 'Module 2 Standard')}`}
       />
 
       {/* Must Answer modal */}
@@ -793,4 +852,5 @@ function FullScreenMessage({ children, error }) {
     </div>
   );
 }
+
 

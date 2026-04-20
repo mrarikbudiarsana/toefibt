@@ -10,7 +10,7 @@ import OpenAI from 'openai';
 
 const RUBRICS = {
   listen_repeat: `
-Score 5: Near-perfect repetition — all words correct, natural rhythm and intonation.
+Score 5: Near-perfect repetition  all words correct, natural rhythm and intonation.
 Score 4: Minor omissions or substitutions, generally intelligible.
 Score 3: Several errors but key content present, somewhat intelligible.
 Score 2: Significant errors, limited intelligibility.
@@ -60,7 +60,7 @@ export async function POST(request) {
     const rubric = RUBRICS[taskType] ?? RUBRICS.take_interview;
 
     const systemPrompt = `You are an expert TOEFL iBT speaking examiner trained in ETS scoring rubrics.
-Score the following student's spoken response (provided as a transcript) on a scale of 0–5.
+Score the following student's spoken response (provided as a transcript) on a scale of 05.
 
 Task type: ${taskType}
 Original prompt: ${prompt}

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -7,7 +7,7 @@ import {
   getOverallBand, getCEFR, getBand120Range
 } from '@/lib/scoring';
 
-const SECTION_ICONS = { reading: '📖', listening: '🎧', writing: '✍️', speaking: '🗣️' };
+const SECTION_ICONS = { reading: 'R', listening: 'L', writing: 'W', speaking: 'S' };
 
 export default function SubmissionReviewPage() {
   const { submissionId } = useParams();
@@ -149,7 +149,7 @@ export default function SubmissionReviewPage() {
     }
   }
 
-  if (loading) return <div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading submission…</div>;
+  if (loading) return <div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading submission</div>;
   if (!sub) return <div style={{ padding: 40, color: 'var(--danger)' }}>Submission not found.</div>;
 
   const answers = sub.answers_json ?? {};
@@ -166,11 +166,11 @@ export default function SubmissionReviewPage() {
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 24px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28 }}>
-        <button className="btn btn--ghost btn--sm" onClick={() => router.push('/admin/submissions')}>← Back</button>
+        <button className="btn btn--ghost btn--sm" onClick={() => router.push('/admin/submissions')}>Back</button>
         <div style={{ flex: 1 }}>
           <h1 style={{ fontSize: 20, fontWeight: 800 }}>{sub.test_assignments?.tests?.title ?? 'TOEFL iBT Submission'}</h1>
           <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            Submitted: {new Date(sub.submitted_at).toLocaleString()} · Status: <strong>{sub.status}</strong>
+            Submitted: {new Date(sub.submitted_at).toLocaleString()} - Status: <strong>{sub.status}</strong>
           </p>
         </div>
         <button
@@ -178,26 +178,26 @@ export default function SubmissionReviewPage() {
           onClick={runAIScoring}
           disabled={aiScoring}
         >
-          {aiScoring ? '⏳ Scoring with AI…' : '🤖 Run AI Scoring'}
+          {aiScoring ? 'Scoring with AI' : 'Run AI Scoring'}
         </button>
         <button className="btn btn--primary" onClick={handleSaveGrade} disabled={saving}>
-          {saving ? 'Saving…' : '✓ Save & Release Grade'}
+          {saving ? 'Saving' : 'Save & Release Grade'}
         </button>
       </div>
 
       {success && (
         <div style={{ background: 'var(--success-bg)', border: '1px solid #86efac', borderRadius: 8, padding: '12px 16px', marginBottom: 20, color: 'var(--success)', fontWeight: 600 }}>
-          ✓ {success}
+          {success}
         </div>
       )}
 
       {/* Band score editors */}
       <div className="card" style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700 }}>Band Scores (1–6)</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700 }}>Band Scores (1-6)</h2>
           {overall && (
             <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--teal)' }}>
-              Overall: {overall} · CEFR {getCEFR(Math.round(parseFloat(overall)))}
+              Overall: {overall} - CEFR {getCEFR(Math.round(parseFloat(overall)))}
             </div>
           )}
         </div>
@@ -213,9 +213,9 @@ export default function SubmissionReviewPage() {
                 value={bands[sec] ?? ''}
                 onChange={e => setManualBands(prev => ({ ...prev, [sec]: e.target.value ? parseInt(e.target.value) : null }))}
               >
-                <option value="">—</option>
+                <option value=""></option>
                 {[1, 2, 3, 4, 5, 6].map(b => (
-                  <option key={b} value={b}>{b} — {getCEFR(b)}</option>
+                  <option key={b} value={b}>{b} - {getCEFR(b)}</option>
                 ))}
               </select>
             </div>
@@ -226,7 +226,7 @@ export default function SubmissionReviewPage() {
       {/* Writing responses */}
       {Object.keys(writing).length > 0 && (
         <div className="card" style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>✍️ Writing Responses</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Writing Responses</h2>
           {Object.entries(writing).map(([qId, response]) => {
             const ai = aiScores[qId];
             return (
@@ -250,7 +250,7 @@ export default function SubmissionReviewPage() {
       {/* Speaking recordings */}
       {Object.keys(speaking).length > 0 && (
         <div className="card" style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>🗣️ Speaking Recordings</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Speaking Recordings</h2>
           {Object.entries(speaking).map(([qId, url]) => {
             const ai = aiScores[qId];
             return (
@@ -262,7 +262,7 @@ export default function SubmissionReviewPage() {
                     <div style={{ fontWeight: 800, fontSize: 20, color: 'var(--teal)', marginBottom: 6 }}>AI Score: {ai.score}/5</div>
                     {ai.transcript && (
                       <div style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: 8 }}>
-                        Transcript: "{ai.transcript}"
+                        Transcript: &quot;{ai.transcript}&quot;
                       </div>
                     )}
                     <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{ai.feedback}</p>
@@ -276,3 +276,4 @@ export default function SubmissionReviewPage() {
     </div>
   );
 }
+

@@ -28,16 +28,16 @@ export default function AdminLayout({ children }) {
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <span style={{ color: 'var(--text-muted)' }}>Loading admin panel…</span>
+      <span style={{ color: 'var(--text-muted)' }}>Loading admin panel</span>
     </div>
   );
 
   const NAV = [
-    { label: '📊 Dashboard', href: '/admin' },
-    { label: '📝 Tests', href: '/admin/tests' },
-    { label: '👥 Assign', href: '/admin/assign' },
-    { label: '📈 Submissions', href: '/admin/submissions' },
-    { label: '👤 Students', href: '/admin/students' },
+    { label: 'Dashboard', href: '/admin' },
+    { label: 'Tests', href: '/admin/tests' },
+    { label: 'Assign', href: '/admin/assign' },
+    { label: 'Submissions', href: '/admin/submissions' },
+    { label: 'Students', href: '/admin/students' },
   ];
 
   return (
@@ -89,3 +89,4 @@ export default function AdminLayout({ children }) {
     </div>
   );
 }
+

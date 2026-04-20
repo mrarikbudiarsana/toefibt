@@ -72,7 +72,7 @@ export default function AssignPage() {
       {error && <div className="login-form__error" style={{ marginBottom: 20 }}>{error}</div>}
       {success && (
         <div style={{ background: 'var(--success-bg)', border: '1px solid #86efac', borderRadius: 8, padding: '12px 16px', marginBottom: 20, color: 'var(--success)', fontWeight: 600 }}>
-          ✓ {success}
+           {success}
         </div>
       )}
 
@@ -83,7 +83,7 @@ export default function AssignPage() {
             <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>1. Select Test</h2>
             <label className="label" htmlFor="test-select">Test</label>
             <select id="test-select" className="input" value={selectedTest} onChange={e => setSelectedTest(e.target.value)}>
-              <option value="">— Choose a test —</option>
+              <option value=""> Choose a test </option>
               {tests.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
             </select>
           </div>
@@ -103,7 +103,7 @@ export default function AssignPage() {
           </div>
 
           <button className="btn btn--primary btn--lg btn--full" onClick={handleAssign} disabled={saving}>
-            {saving ? 'Assigning…' : `Assign to ${selectedStudents.length} Student${selectedStudents.length !== 1 ? 's' : ''}`}
+            {saving ? 'Assigning' : `Assign to ${selectedStudents.length} Student${selectedStudents.length !== 1 ? 's' : ''}`}
           </button>
         </div>
 

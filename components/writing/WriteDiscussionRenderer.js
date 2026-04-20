@@ -5,26 +5,26 @@
  * Forum layout: discussion thread on left, editor on right
  * ~100-word minimum response
  *
- * ETS Rubric: 0–5 (AI scored)
+ * ETS Rubric: 05 (AI scored)
  * Timing: ~10 minutes
  */
 
 const SAMPLE_POSTS = [
   {
     name: 'Professor Rivera',
-    avatar: '👨‍🏫',
+    avatar: 'IN',
     role: 'Instructor',
     message: 'This week, we are discussing whether universities should require all students to study abroad for at least one semester. What is your opinion on this policy?',
   },
   {
     name: 'Alex M.',
-    avatar: '🧑',
+    avatar: 'AM',
     role: 'Student',
     message: 'I think studying abroad should be required. It helps students develop cross-cultural communication skills and broadens their worldview in ways that on-campus learning cannot.',
   },
   {
     name: 'Priya S.',
-    avatar: '👩',
+    avatar: 'SL',
     role: 'Student',
     message: 'I disagree. Not every student can afford to study abroad. Making it mandatory would create an unfair burden on students from lower-income backgrounds.',
   },
@@ -35,9 +35,9 @@ export default function WriteDiscussionRenderer({ discussionPosts = SAMPLE_POSTS
 
   return (
     <div className="split-layout">
-      {/* Left — discussion thread */}
+      {/* Left  discussion thread */}
       <div className="split-pane split-pane--left">
-        <div className="split-pane__label">Academic Discussion — Task {questionNumber} of {totalQuestions}</div>
+        <div className="split-pane__label">Academic Discussion  Task {questionNumber} of {totalQuestions}</div>
 
         {/* Discussion posts */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -61,7 +61,7 @@ export default function WriteDiscussionRenderer({ discussionPosts = SAMPLE_POSTS
         </div>
       </div>
 
-      {/* Right — editor */}
+      {/* Right  editor */}
       <div className="split-pane split-pane--right" style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div className="split-pane__label" style={{ margin: 0 }}>Your Response</div>
@@ -79,7 +79,7 @@ export default function WriteDiscussionRenderer({ discussionPosts = SAMPLE_POSTS
         <textarea
           className="input"
           style={{ flex: 1, minHeight: 350, fontFamily: 'var(--font)', fontSize: 15, lineHeight: 1.7, resize: 'none' }}
-          placeholder="Write your response to the discussion here. Express your opinion and support it with examples or reasons…"
+          placeholder="Write your response to the discussion here. Express your opinion and support it with examples or reasons"
           value={value}
           onChange={e => onChange(e.target.value)}
           spellCheck={true}
@@ -89,3 +89,4 @@ export default function WriteDiscussionRenderer({ discussionPosts = SAMPLE_POSTS
     </div>
   );
 }
+

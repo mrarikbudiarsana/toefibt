@@ -804,6 +804,25 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
   const showSpeakerPhoto = ['listen_choose_response', 'listen_conversation', 'listen_announcement', 'listen_academic_talk', 'take_interview'].includes(q.task_type);
   const showGroupAudio = ['listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(q.task_type);
   const showTiles = q.task_type === 'build_sentence';
+  const isGroupIntroTask = ['listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(q.task_type);
+  const mainAudioLabelByType = {
+    listen_conversation: 'Conversation Audio URL (group shared)',
+    listen_announcement: 'Announcement Audio URL (group shared)',
+    listen_academic_talk: 'Academic Talk Audio URL (group shared)',
+  };
+  const mainAudioPlaceholderByType = {
+    listen_conversation: 'Conversation audio played after directions audio',
+    listen_announcement: 'Announcement audio played after directions audio',
+    listen_academic_talk: 'Academic talk audio played after directions audio',
+  };
+  const audioLabel = isGroupIntroTask ? (mainAudioLabelByType[q.task_type] || 'Main Audio URL (group shared)') : 'Audio URL (question audio)';
+  const audioPlaceholder = isGroupIntroTask ? (mainAudioPlaceholderByType[q.task_type] || 'Main audio played after directions audio') : 'https://.../audio.mp3';
+  const groupAudioLabel = isGroupIntroTask
+    ? 'Directions Audio URL (group intro page)'
+    : 'Group Audio URL (shared passage audio)';
+  const groupAudioPlaceholder = isGroupIntroTask
+    ? 'Audio played on the special intro page'
+    : 'Shared audio for all questions in this group';
   const readingPassageIndex = Number.parseInt(q.group_id || '0', 10);
   const readingPassages = parseReadingPassages(sec.reading_passage);
   const readingPassageLabel = sectionType === 'reading' && ['read_daily_life', 'read_academic'].includes(q.task_type)
@@ -1027,27 +1046,37 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
 
           {showAudio && (
             <div>
-              <label className="label" htmlFor={`audio-${q._id}`}>Audio URL (question audio)</label>
+              <label className="label" htmlFor={`audio-${q._id}`}>{audioLabel}</label>
               <input
                 id={`audio-${q._id}`}
                 className="input"
                 value={q.audio_url}
                 onChange={event => onChange('audio_url', event.target.value)}
-                placeholder="https://.../audio.mp3"
+                placeholder={audioPlaceholder}
               />
+              {isGroupIntroTask && (
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Use this as the shared main audio (second clip) for all questions in the same group.
+                </p>
+              )}
             </div>
           )}
 
           {showGroupAudio && (
             <div>
-              <label className="label" htmlFor={`gaudio-${q._id}`}>Group Audio URL (shared passage audio)</label>
+              <label className="label" htmlFor={`gaudio-${q._id}`}>{groupAudioLabel}</label>
               <input
                 id={`gaudio-${q._id}`}
                 className="input"
                 value={q.group_audio_url}
                 onChange={event => onChange('group_audio_url', event.target.value)}
-                placeholder="Shared audio for all questions in this group"
+                placeholder={groupAudioPlaceholder}
               />
+              {isGroupIntroTask && (
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                  This group link is the directions clip played before questions appear.
+                </p>
+              )}
               <div style={{ marginTop: 8 }}>
                 <label className="label" htmlFor={`gid-${q._id}`}>Group ID</label>
                 <input

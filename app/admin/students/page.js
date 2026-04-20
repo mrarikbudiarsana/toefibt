@@ -44,17 +44,17 @@ export default function AdminStudentsPage() {
         <input
           className="input"
           style={{ width: 260 }}
-          placeholder="Search by name or email…"
+          placeholder="Search by name or email"
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
       </div>
 
       {loading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Loading students…</p>
+        <p style={{ color: 'var(--text-muted)' }}>Loading students</p>
       ) : filtered.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '60px 24px' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>👤</div>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>x</div>
           <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
             {search ? 'No students match your search.' : 'No students yet.'}
           </h2>
@@ -89,7 +89,7 @@ export default function AdminStudentsPage() {
                   </td>
                   <td style={{ color: 'var(--text-secondary)', fontSize: 14 }}>{s.email}</td>
                   <td style={{ fontSize: 13 }}>
-                    {s.created_at ? new Date(s.created_at).toLocaleDateString() : '—'}
+                    {s.created_at ? new Date(s.created_at).toLocaleDateString() : ''}
                   </td>
                   <td>
                     <span style={{ fontWeight: 700 }}>{assignments.length}</span>
@@ -97,12 +97,12 @@ export default function AdminStudentsPage() {
                   <td>
                     {submitted > 0
                       ? <span className="badge badge--teal">{submitted}</span>
-                      : <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>}
+                      : <span style={{ color: 'var(--text-muted)', fontSize: 13 }}></span>}
                   </td>
                   <td>
                     {graded > 0
                       ? <span className="badge badge--green">{graded}</span>
-                      : <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>}
+                      : <span style={{ color: 'var(--text-muted)', fontSize: 13 }}></span>}
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: 8 }}>
@@ -134,3 +134,4 @@ export default function AdminStudentsPage() {
     </div>
   );
 }
+

@@ -188,7 +188,7 @@ export default function QuestionPreview({ question, sectionType, section, questi
 
   const taskType = question.task_type;
   const isConversationFlow =
-    taskType === 'listen_conversation' ||
+    ['listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(taskType) ||
     (taskType === 'listen_choose_response' && Boolean(String(question.group_audio_url || '').trim()));
 
   if (taskType === 'c_test') {

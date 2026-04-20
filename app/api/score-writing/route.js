@@ -37,7 +37,7 @@ export async function POST(request) {
     const rubric = RUBRICS[taskType] ?? RUBRICS.write_discussion;
 
     const systemPrompt = `You are an expert TOEFL iBT writing examiner trained in ETS scoring rubrics.
-Score the following student response on a scale of 0–5 using the rubric below.
+Score the following student response on a scale of 05 using the rubric below.
 
 Rubric:
 ${rubric}

@@ -100,14 +100,14 @@ export default function DashboardPage() {
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
-            Loading your tests…
+            Loading your tests
           </div>
         ) : assignments.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: '60px 24px' }}>
-            <div style={{ fontSize: 40, marginBottom: 16 }}>📋</div>
+            <div style={{ fontSize: 28, marginBottom: 16, fontWeight: 700 }}>Test</div>
             <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>No tests assigned yet</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-              Your instructor will assign a TOEFL iBT mock test when you're ready.
+              Your instructor will assign a TOEFL iBT mock test when you are ready.
             </p>
           </div>
         ) : (
@@ -137,15 +137,15 @@ export default function DashboardPage() {
                     <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                       {a.tests?.title ?? 'TOEFL iBT Mock Test'}
                     </td>
-                    <td>{a.available_from ? new Date(a.available_from).toLocaleDateString() : '—'}</td>
-                    <td>{a.due_at ? new Date(a.due_at).toLocaleDateString() : '—'}</td>
+                    <td>{a.available_from ? new Date(a.available_from).toLocaleDateString() : ''}</td>
+                    <td>{a.due_at ? new Date(a.due_at).toLocaleDateString() : ''}</td>
                     <td><span className={`badge ${status.cls}`}>{status.text}</span></td>
                     <td>
                       {overall ? (
                         <span style={{ fontWeight: 700, color: 'var(--teal)', fontSize: 16 }}>
                           {overall} <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 400 }}>/ 6</span>
                         </span>
-                      ) : '—'}
+                      ) : ''}
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -177,3 +177,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

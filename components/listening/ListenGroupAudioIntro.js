@@ -2,24 +2,51 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-export default function ListenGroupAudioIntro({ audioUrl, speakerPhotoUrl, onFinished }) {
+export default function ListenGroupAudioIntro({ directionsAudioUrl, contentAudioUrl, speakerPhotoUrl, onFinished }) {
   const audioRef = useRef(null);
   const [status, setStatus] = useState('loading'); // loading | playing | ended | error
+  const [phase, setPhase] = useState(() => (String(directionsAudioUrl || '').trim() ? 'directions' : 'content')); // directions | content
+  const queueRef = useRef([]);
+  const onFinishedRef = useRef(onFinished);
+
+  useEffect(() => {
+    onFinishedRef.current = onFinished;
+  }, [onFinished]);
 
   useEffect(() => {
     if (!audioRef.current) return;
-    if (!audioUrl) {
-      onFinished?.();
+    const directions = String(directionsAudioUrl || '').trim();
+    const content = String(contentAudioUrl || '').trim();
+    const queue = [directions, content].filter(Boolean);
+    if (!queue.length) {
+      onFinishedRef.current?.();
       return;
     }
-
-    audioRef.current.src = audioUrl;
+    queueRef.current = queue;
+    const firstUrl = queue[0];
+    audioRef.current.src = firstUrl;
     audioRef.current.play()
       .then(() => setStatus('playing'))
       .catch(() => {
         setStatus('error');
       });
-  }, [audioUrl, onFinished]);
+  }, [directionsAudioUrl, contentAudioUrl]);
+
+  function playNextOrFinish() {
+    const queue = queueRef.current;
+    const currentIndex = phase === 'directions' ? 0 : 1;
+    const nextIndex = currentIndex + 1;
+    if (!queue[nextIndex]) {
+      setStatus('ended');
+      setTimeout(() => onFinishedRef.current?.(), 250);
+      return;
+    }
+    setPhase('content');
+    audioRef.current.src = queue[nextIndex];
+    audioRef.current.play()
+      .then(() => setStatus('playing'))
+      .catch(() => setStatus('error'));
+  }
 
   return (
     <div
@@ -35,17 +62,14 @@ export default function ListenGroupAudioIntro({ audioUrl, speakerPhotoUrl, onFin
       <audio
         ref={audioRef}
         preload="auto"
-        onEnded={() => {
-          setStatus('ended');
-          setTimeout(() => onFinished?.(), 250);
-        }}
+        onEnded={playNextOrFinish}
         onError={() => setStatus('error')}
         style={{ display: 'none' }}
       />
 
       <div style={{ textAlign: 'center', maxWidth: 560 }}>
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--teal)', marginBottom: 8 }}>
-          Conversation Audio
+          {phase === 'directions' ? 'Directions Audio' : 'Main Audio'}
         </div>
 
         {speakerPhotoUrl ? (
@@ -57,13 +81,19 @@ export default function ListenGroupAudioIntro({ audioUrl, speakerPhotoUrl, onFin
         ) : null}
 
         {status === 'loading' && <p style={{ fontSize: 15, color: 'var(--text-secondary)' }}>Preparing audio...</p>}
-        {status === 'playing' && <p style={{ fontSize: 15, color: 'var(--text-secondary)' }}>Listen carefully. Questions will appear after the audio.</p>}
+        {status === 'playing' && (
+          <p style={{ fontSize: 15, color: 'var(--text-secondary)' }}>
+            {phase === 'directions'
+              ? 'Listen to the directions.'
+              : 'Listen carefully. Questions will appear after this audio.'}
+          </p>
+        )}
         {status === 'ended' && <p style={{ fontSize: 15, color: 'var(--text-secondary)' }}>Audio finished. Loading questions...</p>}
 
         {status === 'error' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <p style={{ fontSize: 14, color: 'var(--danger)' }}>Audio could not be played. Continue to questions.</p>
-            <button className="btn btn--primary" onClick={() => onFinished?.()}>
+            <button className="btn btn--primary" onClick={() => onFinishedRef.current?.()}>
               Continue
             </button>
           </div>

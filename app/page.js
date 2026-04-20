@@ -9,12 +9,12 @@ export default function LoginPage() {
 
   return (
     <main className="login-page">
-      {/* Left — Brand panel */}
+      {/* Left Brand panel */}
       <div className="login-page__left">
         <p className="login-page__brand">English with Arik</p>
         <h1 className="login-page__title">TOEFL iBT<br />Mock Test Platform</h1>
         <p className="login-page__sub">
-          Practice the official January 2026 format — Reading, Listening, Writing &amp; Speaking — with adaptive scoring and AI feedback.
+          Practice the official January 2026 format - Reading, Listening, Writing &amp; Speaking - with adaptive scoring and AI feedback.
         </p>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 28, justifyContent: 'center' }}>
@@ -40,12 +40,12 @@ export default function LoginPage() {
           lineHeight: 1.7,
           opacity: 0.9,
         }}>
-          <strong>1–6 Band Scale</strong> aligned to CEFR<br />
-          (A1 → C2) · January 2026 Format
+          <strong>1-6 Band Scale</strong> aligned to CEFR<br />
+          (A1 - C2) - January 2026 Format
         </div>
       </div>
 
-      {/* Right — Auth panel */}
+      {/* Right Auth panel */}
       <div className="login-page__right">
         <div style={{ width: '100%', maxWidth: 380 }}>
           {/* Tab switcher */}
@@ -142,7 +142,7 @@ function LoginForm({ router }) {
           id="login-password"
           type="password"
           className="input"
-          placeholder="••••••••"
+          placeholder="Password"
           value={password}
           onChange={e => setPassword(e.target.value)}
           required
@@ -156,7 +156,7 @@ function LoginForm({ router }) {
         style={{ marginTop: 8 }}
         disabled={loading}
       >
-        {loading ? 'Signing in…' : 'Sign in'}
+        {loading ? 'Signing in' : 'Sign in'}
       </button>
 
       <p style={{ marginTop: 24, fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>
@@ -210,7 +210,7 @@ function SignupForm({ onSuccess }) {
   if (done) {
     return (
       <div className="login-form" style={{ textAlign: 'center', paddingTop: 24 }}>
-        <div style={{ fontSize: 52, marginBottom: 16 }}>✉️</div>
+        <div style={{ fontSize: 52, marginBottom: 16 }}>Done</div>
         <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Check your email</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.7, marginBottom: 28 }}>
           We sent a confirmation link to <strong>{email}</strong>.<br />
@@ -292,7 +292,7 @@ function SignupForm({ onSuccess }) {
         style={{ marginTop: 8 }}
         disabled={loading}
       >
-        {loading ? 'Creating account…' : 'Create account'}
+        {loading ? 'Creating account' : 'Create account'}
       </button>
 
       <p style={{ marginTop: 20, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.6 }}>
@@ -301,3 +301,4 @@ function SignupForm({ onSuccess }) {
     </form>
   );
 }
+
