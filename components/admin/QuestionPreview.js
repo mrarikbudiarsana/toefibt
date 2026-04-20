@@ -7,6 +7,7 @@ import ReadAcademicRenderer from '@/components/reading/ReadAcademicRenderer';
 import BuildSentenceRenderer from '@/components/writing/BuildSentenceRenderer';
 import WriteEmailRenderer from '@/components/writing/WriteEmailRenderer';
 import WriteDiscussionRenderer from '@/components/writing/WriteDiscussionRenderer';
+import RadioOptionList from '@/components/shared/RadioOptionList';
 
 function parseReadingPassages(value) {
   let passages = [];
@@ -80,6 +81,8 @@ function PreviewShell({ title = 'Question Preview', subtitle, children, flush = 
 }
 
 function AudioMock({ heading, description, choices = [], speakerPhotoUrl = '' }) {
+  const [selected, setSelected] = useState(null);
+
   return (
     <PreviewShell title={heading} subtitle="Preview mode uses a static mock instead of autoplay audio or recording.">
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 24px 28px' }}>
@@ -95,23 +98,59 @@ function AudioMock({ heading, description, choices = [], speakerPhotoUrl = '' })
           <div style={{ color: 'var(--text-secondary)', lineHeight: 1.6, fontSize: 14 }}>{description}</div>
         </div>
         {choices.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {choices.slice(0, 4).map((opt, i) => {
+          <RadioOptionList options={choices.slice(0, 4)} selected={selected} onSelect={setSelected} gap={14} fontSize={15} />
+        )}
+      </div>
+    </PreviewShell>
+  );
+}
+
+function ListenChooseMock({ choices = [], speakerPhotoUrl = '' }) {
+  const [selected, setSelected] = useState(null);
+  const items = choices.slice(0, 4);
+
+  return (
+    <PreviewShell title="Listening Preview" subtitle="Layout matches student-facing Listen and Choose screen.">
+      <div style={{ width: '100%', maxWidth: 980, margin: '0 auto', padding: '16px 16px 20px' }}>
+        <h2 style={{ textAlign: 'center', fontSize: 22, fontWeight: 700, color: '#111', margin: '0 0 12px', fontFamily: 'Arial, sans-serif' }}>
+          Choose the best response.
+        </h2>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 30, alignItems: 'start' }}>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            {speakerPhotoUrl ? (
+              <img src={speakerPhotoUrl} alt="Speaker" style={{ width: 230, height: 300, objectFit: 'cover', objectPosition: 'center top' }} />
+            ) : (
+              <div style={{ width: 230, height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4b5563', fontSize: 24 }}>
+                Audio
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {items.map((option, i) => {
               const letter = String.fromCharCode(65 + i);
+              const cleanOption = String(option).replace(/^[A-D][\.\)\:\-\s]+/i, '');
+              const isSelected = selected === letter;
+
               return (
-                <div
+                <label
                   key={letter}
-                  style={{ display: 'flex', gap: 12, alignItems: 'center', border: '1px solid var(--border-light)', borderRadius: 10, padding: '12px 14px', background: '#fff' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 15, color: isSelected ? 'var(--teal)' : 'var(--text-primary)', cursor: 'pointer', userSelect: 'none' }}
                 >
-                  <span style={{ width: 28, height: 28, borderRadius: 999, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', fontWeight: 700 }}>
-                    {letter}
-                  </span>
-                  <span>{opt}</span>
-                </div>
+                  <input
+                    type="radio"
+                    name="listen-choose-preview-option"
+                    checked={isSelected}
+                    onChange={() => setSelected(letter)}
+                    style={{ width: 18, height: 18, accentColor: 'var(--teal)', cursor: 'pointer', flexShrink: 0 }}
+                  />
+                  <span style={{ lineHeight: 1.45 }}>{cleanOption}</span>
+                </label>
               );
             })}
           </div>
-        )}
+        </div>
       </div>
     </PreviewShell>
   );
@@ -231,9 +270,7 @@ export default function QuestionPreview({ question, sectionType, section, questi
 
   if (taskType === 'listen_choose_response') {
     return (
-      <AudioMock
-        heading="Listening Preview"
-        description="In the actual test, students hear the audio while seeing the options at the same time."
+      <ListenChooseMock
         choices={options}
         speakerPhotoUrl={question.speaker_photo_url || ''}
       />
@@ -274,3 +311,4 @@ export default function QuestionPreview({ question, sectionType, section, questi
     </PreviewShell>
   );
 }
+
