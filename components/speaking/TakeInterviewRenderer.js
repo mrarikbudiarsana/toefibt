@@ -98,8 +98,8 @@ export default function TakeInterviewRenderer({
           </div>
         )}
         <div>
-          <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{interviewerName}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>TOEFL iBT Interviewer  Question {questionNumber} of {totalQuestions}</div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#000' }}>{interviewerName}</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>TOEFL iBT Interviewer &middot; Question {questionNumber} of {totalQuestions}</div>
         </div>
         <div style={{ marginLeft: 'auto' }}>
           <span className="badge badge--teal" style={{ fontSize: 11, textTransform: 'uppercase' }}>Take an Interview</span>
@@ -108,10 +108,17 @@ export default function TakeInterviewRenderer({
 
       {/* Question card */}
       <div style={{
-        background: 'var(--surface)', border: '2px solid var(--teal)',
-        borderRadius: 10, padding: '20px 24px',
-        marginBottom: 28, fontSize: 17, fontWeight: 600,
-        color: 'var(--text-primary)', lineHeight: 1.6,
+        background: '#ffffff',
+        border: '1.5px solid #edf2f7',
+        borderLeft: '4px solid var(--teal)',
+        borderRadius: 12,
+        padding: '24px 28px',
+        marginBottom: 32,
+        fontSize: 18,
+        fontWeight: 600,
+        color: '#000',
+        lineHeight: 1.6,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
       }}>
         {question || 'Tell me about a time when you had to overcome a challenge. What did you do, and what did you learn from the experience?'}
       </div>
@@ -136,11 +143,12 @@ export default function TakeInterviewRenderer({
           </div>
           <div style={{
             width: 90, height: 90, borderRadius: '50%',
-            background: 'var(--teal)', color: '#fff',
+            background: '#ffffff', color: 'var(--teal)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 40, fontWeight: 800,
             margin: '0 auto 16px',
-            boxShadow: '0 6px 24px rgba(13,115,119,0.3)',
+            border: '3px solid var(--teal)',
+            boxShadow: '0 8px 24px rgba(13,115,119,0.15)',
           }}>
             {prepRemaining}
           </div>

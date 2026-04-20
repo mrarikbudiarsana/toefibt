@@ -43,10 +43,11 @@ export default function WriteDiscussionRenderer({ discussionPosts = SAMPLE_POSTS
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {(discussionPosts.length ? discussionPosts : SAMPLE_POSTS).map((post, i) => (
             <div key={i} style={{
-              background: i === 0 ? 'var(--teal-light)' : 'var(--bg)',
-              borderRadius: 10,
-              padding: '14px 16px',
-              border: `1px solid ${i === 0 ? '#a7d7d9' : 'var(--border-light)'}`,
+              background: i === 0 ? '#f0f9fa' : '#ffffff',
+              borderRadius: 12,
+              padding: '16px 20px',
+              border: `1px solid ${i === 0 ? '#c7e9eb' : '#edf2f7'}`,
+              boxShadow: i === 0 ? 'none' : '0 2px 4px rgba(0,0,0,0.02)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                 <span style={{ fontSize: 24 }}>{post.avatar}</span>
@@ -71,8 +72,9 @@ export default function WriteDiscussionRenderer({ discussionPosts = SAMPLE_POSTS
         </div>
 
         {prompt && (
-          <div style={{ marginBottom: 12, padding: '12px 14px', background: 'var(--teal-light)', borderRadius: 8, fontSize: 14, color: 'var(--teal-dark)', lineHeight: 1.6 }}>
-            <strong>Your task:</strong> {prompt}
+          <div style={{ marginBottom: 12, padding: '14px 18px', background: '#f0f9fa', borderRadius: 10, fontSize: 14, color: '#0d7377', lineHeight: 1.6, border: '1px solid #c7e9eb' }}>
+            <div style={{ fontWeight: 800, textTransform: 'uppercase', fontSize: 11, letterSpacing: '0.05em', marginBottom: 4 }}>Writing Prompt</div>
+            {prompt}
           </div>
         )}
 

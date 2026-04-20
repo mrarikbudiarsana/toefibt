@@ -138,29 +138,30 @@ export default function ListenAudioFirstRenderer({
   //  QUESTION PHASE 
   return (
     <div style={{
-      maxWidth: 720, margin: '0 auto', padding: '32px 32px',
-      display: 'flex', flexDirection: 'column', gap: 24,
+      maxWidth: 720, margin: '0 auto', padding: '60px 32px',
+      display: 'flex', flexDirection: 'column', gap: 32,
+      background: '#ffffff'
     }}>
       <audio ref={audioRef} style={{ display: 'none' }} />
-
+ 
       {/* Header row: small speaker photo + task label */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
         {speakerPhotoUrl ? (
-          <img src={speakerPhotoUrl} alt="Speaker" className="speaker-photo speaker-photo--sm" />
+          <img src={speakerPhotoUrl} alt="Speaker" className="speaker-photo speaker-photo--sm" style={{ border: '2.5px solid var(--teal)' }} />
         ) : (
           <div style={{
             width: 56, height: 56, borderRadius: '50%',
-            background: 'var(--teal-light)',
+            background: '#ffffff',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 28, flexShrink: 0,
-            border: '2px solid var(--teal)',
+            border: '2.5px solid var(--teal)',
           }}>x</div>
         )}
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--teal)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', padding: '4px 0', borderBottom: '2px solid var(--teal)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'inline-block' }}>
             {taskLabel}
           </div>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: '#64748b', marginTop: 6, fontWeight: 500 }}>
             Question {questionNumber}
             {totalInGroup > 1 ? ` (${questionInGroup} of ${totalInGroup} for this audio)` : ''}
           </div>

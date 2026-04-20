@@ -14,9 +14,9 @@ export default function ListenConversationQuestionRenderer({
     .map(option => String(option).replace(/^[A-D][\.\)\:\-\s]+/i, ''));
 
   return (
-    <div style={{ minHeight: 'calc(100vh - var(--navbar-height) - var(--subbar-height))', background: '#ececec', padding: '24px' }}>
-      <div style={{ width: '100%', maxWidth: 1060, margin: '0 auto', paddingTop: 8 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '360px minmax(0, 1fr)', gap: 28, alignItems: 'start' }}>
+    <div style={{ minHeight: 'calc(100vh - var(--navbar-height) - var(--subbar-height))', background: '#ffffff', padding: '40px 24px' }}>
+      <div style={{ width: '100%', maxWidth: 1040, margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 1.25fr', gap: 60, alignItems: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             {speakerPhotoUrl ? (
               <img
@@ -25,17 +25,17 @@ export default function ListenConversationQuestionRenderer({
                 style={{ width: 340, maxWidth: '100%', height: 440, objectFit: 'contain', objectPosition: 'center top' }}
               />
             ) : (
-              <div style={{ width: 340, height: 440, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4b5563', fontSize: 22 }}>
+              <div style={{ width: 340, height: 440, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: 22, background: '#f8fafc', borderRadius: 16 }}>
                 Conversation
               </div>
             )}
           </div>
 
-          <div style={{ paddingTop: 10 }}>
-            <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.45, color: '#111', marginBottom: 12 }}>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.45, color: '#000', marginBottom: 24, letterSpacing: '-0.01em' }}>
               {question?.trim() || 'What is the main point of the conversation?'}
             </div>
-            <RadioOptionList options={choices} selected={selected} onSelect={onSelect} gap={14} fontSize={15} />
+            <RadioOptionList options={choices} selected={selected} onSelect={onSelect} gap={16} fontSize={16} />
           </div>
         </div>
       </div>

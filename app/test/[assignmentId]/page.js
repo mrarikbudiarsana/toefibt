@@ -631,32 +631,32 @@ export default function TestPage() {
   //  INTRO SCREEN (Start Page)
   if (screen === 'intro') {
     return (
-      <div className="premium-bg" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div className="premium-bg" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, overflow: 'hidden' }}>
         <ToeflNavbar sectionName="" showSubbar={false} showVolume={false} />
-        <div className="glass-card" style={{ maxWidth: 640, width: '100%', textAlign: 'center', marginTop: 40 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--teal)', marginBottom: 12 }}>
+        <div className="glass-card" style={{ maxWidth: 640, width: '100%', textAlign: 'center', padding: '32px 40px' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--teal)', marginBottom: 8 }}>
             Secure Examination Platform
           </div>
-          <h1 style={{ fontSize: 42, fontWeight: 800, marginBottom: 12, color: 'var(--deep-navy)', letterSpacing: '-0.02em' }}>
+          <h1 style={{ fontSize: 36, fontWeight: 800, marginBottom: 8, color: 'var(--deep-navy)', letterSpacing: '-0.02em' }}>
             {testData.tests.title ?? 'TOEFL iBT Mock Test'}
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 16, lineHeight: 1.6, marginBottom: 40, maxWidth: 480, marginInline: 'auto' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.6, marginBottom: 24, maxWidth: 480, marginInline: 'auto' }}>
             This comprehensive evaluation measures your proficiency across all four linguistic domains.
             Total duration: approximately <strong>117 minutes</strong>.
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 40, textAlign: 'left' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 32, textAlign: 'left' }}>
             {[
               { label: 'Reading', time: '36 min', info: 'Adaptive', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> },
               { label: 'Listening', time: '36 min', info: 'Adaptive', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg> },
               { label: 'Writing', time: '29 min', info: '2 Tasks', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> },
               { label: 'Speaking', time: '16 min', info: '2 Tasks', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> },
             ].map(s => (
-              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', background: 'rgba(255,255,255,0.5)', borderRadius: 12, border: '1px solid rgba(13, 115, 119, 0.1)' }}>
+              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'rgba(255,255,255,0.5)', borderRadius: 12, border: '1px solid rgba(13, 115, 119, 0.1)' }}>
                 <div style={{ color: 'var(--teal)', display: 'flex' }}>{s.icon}</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--deep-navy)' }}>{s.label}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.info} &middot; {s.time}</div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--deep-navy)' }}>{s.label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{s.info} &middot; {s.time}</div>
                 </div>
               </div>
             ))}
@@ -683,17 +683,17 @@ export default function TestPage() {
     }[section];
 
     return (
-      <div className="premium-bg" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div className="premium-bg" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, overflow: 'hidden' }}>
         <ToeflNavbar sectionName={sectionLabel} showSubbar={false} showVolume={false} />
-        <div className="glass-card" style={{ maxWidth: 560, width: '100%', textAlign: 'center', marginTop: 40 }}>
-          <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'center', color: 'var(--teal)' }}>
+        <div className="glass-card" style={{ maxWidth: 560, width: '100%', textAlign: 'center', padding: '24px 32px' }}>
+          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center', color: 'var(--teal)' }}>
             {sectionIcon}
           </div>
-          <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--teal)', marginBottom: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--teal)', marginBottom: 4 }}>
             {sectionLabel} Section &middot; {moduleLabel}
           </div>
-          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 16, color: 'var(--deep-navy)' }}>Section Directions</h2>
-          <div style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.75, marginBottom: 32, textAlign: 'left', background: 'rgba(0,0,0,0.03)', padding: 20, borderRadius: 12 }}>
+          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, color: 'var(--deep-navy)' }}>Section Directions</h2>
+          <div style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.75, marginBottom: 24, textAlign: 'left', background: 'rgba(0,0,0,0.03)', padding: '16px 20px', borderRadius: 12 }}>
             {section === 'reading' && 'This section measures your ability to understand written academic English. Read each passage and answer the questions.'}
             {section === 'listening' && (
               <>
@@ -745,19 +745,19 @@ export default function TestPage() {
   //  MODULE END (MST transition) 
   if (screen === 'module_end') {
     return (
-      <div className="premium-bg" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div className="premium-bg" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, overflow: 'hidden' }}>
         <ToeflNavbar sectionName={sectionLabel} showSubbar={false} showVolume={false} />
-        <div className="glass-card" style={{ maxWidth: 520, width: '100%', textAlign: 'center', marginTop: 40 }}>
-          <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'center' }}>
-            <div style={{ padding: 20, background: 'var(--teal-light)', borderRadius: '50%' }}>
+        <div className="glass-card" style={{ maxWidth: 520, width: '100%', textAlign: 'center', padding: '32px 40px' }}>
+          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
+            <div style={{ padding: 16, background: 'var(--teal-light)', borderRadius: '50%' }}>
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
           </div>
-          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--teal)', marginBottom: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--teal)', marginBottom: 8 }}>
             Phase Complete
           </div>
-          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 12, color: 'var(--deep-navy)' }}>Module 1 Finished</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.6, marginBottom: 32 }}>
+          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, color: 'var(--deep-navy)' }}>Module 1 Finished</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
             You have successfully completed the first module of the {sectionLabel} section. 
             The second module will now begin with adjusted difficulty.
           </p>
@@ -773,24 +773,24 @@ export default function TestPage() {
   if (screen === 'section_end') {
     const isLast = sectionIdx === SECTION_ORDER.length - 1;
     return (
-      <div className="premium-bg" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div className="premium-bg" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, overflow: 'hidden' }}>
         <ToeflNavbar sectionName={sectionLabel} showSubbar={false} showVolume={false} />
-        <div className="glass-card" style={{ maxWidth: 520, width: '100%', textAlign: 'center', marginTop: 40 }}>
-          <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'center' }}>
-            <div style={{ padding: 20, background: 'var(--success-bg)', borderRadius: '50%' }}>
+        <div className="glass-card" style={{ maxWidth: 520, width: '100%', textAlign: 'center', padding: '32px 40px' }}>
+          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
+            <div style={{ padding: 16, background: 'var(--success-bg)', borderRadius: '50%' }}>
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
           </div>
           
-          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: isLast ? 'var(--accent-gold)' : 'var(--teal)', marginBottom: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: isLast ? 'var(--accent-gold)' : 'var(--teal)', marginBottom: 8 }}>
             {isLast ? 'Examination Finalized' : `Progress: Section ${sectionIdx + 1} of 4`}
           </div>
 
-          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 12, color: 'var(--deep-navy)' }}>
+          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, color: 'var(--deep-navy)' }}>
             {isLast ? 'Test Completed' : `${sectionLabel} Finished`}
           </h2>
           
-          <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.6, marginBottom: 32 }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
             {isLast
               ? 'Your responses have been securely recorded. You may now proceed to view your preliminary score report.'
               : `Great work. You have completed the ${sectionLabel} section. Please proceed to the next stage of the examination.`}
@@ -845,10 +845,37 @@ export default function TestPage() {
 
 function FullScreenMessage({ children, error }) {
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
-      <div style={{ color: error ? 'var(--danger)' : 'var(--text-secondary)', fontSize: 16, textAlign: 'center' }}>
-        {children}
+    <div className="premium-bg" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div className="glass-card" style={{ maxWidth: 400, width: '100%', textAlign: 'center', padding: '40px 32px' }}>
+        {error ? (
+          <div style={{ color: '#ef4444', marginBottom: 20 }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          </div>
+        ) : (
+          <div style={{ marginBottom: 20 }}>
+             <div className="spinner" style={{ width: 40, height: 40, border: '4px solid rgba(13, 115, 119, 0.1)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+          </div>
+        )}
+        <div style={{ color: error ? '#b91c1c' : 'var(--text-secondary)', fontSize: 16, fontWeight: 600 }}>
+          {children}
+        </div>
+        {error && (
+          <button 
+            className="btn btn--sm" 
+            style={{ marginTop: 24, background: '#ef4444', color: '#fff', border: 'none', borderRadius: 8 }}
+            onClick={() => window.location.reload()}
+          >
+            Retry Connection
+          </button>
+        )}
       </div>
+      <style jsx>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }

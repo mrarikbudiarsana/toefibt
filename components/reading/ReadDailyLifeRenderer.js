@@ -24,7 +24,6 @@ function parseEmailPassage(passage) {
     hasAnyHeader = true;
   }
 
-  // If it clearly looks like an email (has at least one header or starts with Dear/Hi), handle it
   const bodyText = lines.slice(bodyStartIndex).join('\n').trim();
   const startsLikeLetter = /^(Dear|Hi|Hello|To whom)/i.test(bodyText);
 
@@ -152,8 +151,8 @@ function DocumentContainer({ children }) {
     <div
       style={{
         background: '#fff',
-        border: '1px solid #d1d5db',
-        borderRadius: '4px',
+        border: '1px solid #e2e8f0',
+        borderRadius: '8px',
         width: '100%',
         margin: '0 auto',
         color: '#1a202c',
@@ -176,8 +175,8 @@ function EmailDocument({ headers, body }) {
         width: '100%',
         maxWidth: '95%',
         margin: '0 auto',
-        border: '2px solid #b98b62',
-        background: '#f5efe8',
+        border: '1px solid #e2e8f0',
+        background: '#fff',
         padding: 10,
       }}
     >
@@ -261,11 +260,11 @@ function NoticeDocument({ title, subtitle, body }) {
   return (
     <div
       style={{
-        background: '#ececec',
-        border: '2px solid #5b5b5b',
+        background: '#fff',
+        border: '1px solid #e2e8f0',
         width: '100%',
         margin: '0 auto',
-        padding: 8,
+        padding: 4,
         maxWidth: '95%',
       }}
     >
@@ -309,8 +308,8 @@ function SocialPostDocument({ name, handle, body }) {
         width: '100%',
         maxWidth: '95%',
         margin: '0 auto',
-        background: '#d9d9d9',
-        border: '2px solid #525252',
+        background: '#fff',
+        border: '1px solid #e2e8f0',
         borderRadius: 26,
         padding: 10,
       }}
@@ -369,11 +368,6 @@ function SocialPostDocument({ name, handle, body }) {
   );
 }
 
-/**
- * Read in Daily Life Renderer
- * Split layout: phone/document mockup on left, MCQ on right
- * Confirmed from ETS screenshots.
- */
 export default function ReadDailyLifeRenderer({ passage = '', question, options = [], selected, onSelect, questionNumber, totalQuestions }) {
   const normalizedPassage = normalizeDailyLifePassage(passage);
   const sourceText = normalizedPassage.text || '';
@@ -427,8 +421,8 @@ export default function ReadDailyLifeRenderer({ passage = '', question, options 
         <div
           className="split-pane split-pane--left"
           style={{
-            background: '#f8fafc',
-            borderRight: '1px solid #e2e8f0',
+            background: '#fff',
+            borderRight: '1px solid #edf2f7',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'flex-start',

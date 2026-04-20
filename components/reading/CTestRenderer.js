@@ -4,14 +4,14 @@ export default function CTestRenderer({ qId, passage = '', instruction, answers 
   const parts = buildRenderableParts(parsePassage(passage));
 
   return (
-    <div style={{ padding: '60px 32px', maxWidth: 900, margin: '0 auto' }}>
+    <div style={{ padding: '60px 32px', maxWidth: 900, margin: '0 auto', background: '#fff' }}>
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', padding: '4px 10px', background: 'var(--teal-light)', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Questions {questionRange[0]}{questionRange[1]}
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', padding: '4px 0', borderBottom: '2px solid var(--teal)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Questions {questionRange[0]}-{questionRange[1]} of {totalQuestions}
           </span>
         </div>
-        <h2 style={{ fontSize: 24, fontWeight: 700, color: '#111', margin: '0 0 8px 0', letterSpacing: '-0.01em', whiteSpace: 'pre-wrap' }}>
+        <h2 style={{ fontSize: 26, fontWeight: 800, color: '#000', margin: '0 0 8px 0', letterSpacing: '-0.025em', lineHeight: 1.3 }}>
           {instruction || 'Fill in the missing letters in the paragraph.'}
         </h2>
       </div>

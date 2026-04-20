@@ -80,6 +80,12 @@ html, body {
   100% { background-position: 0% 50%; }
 }
 
+@keyframes pulseGlow {
+  0% { box-shadow: 0 4px 14px rgba(13, 115, 119, 0.3); }
+  50% { box-shadow: 0 4px 25px rgba(13, 115, 119, 0.6); }
+  100% { box-shadow: 0 4px 14px rgba(13, 115, 119, 0.3); }
+}
+
 .glass-card {
   background: var(--glass-bg);
   backdrop-filter: blur(12px);
@@ -251,7 +257,7 @@ a { color: inherit; text-decoration: none; }
 .test-layout {
   padding-top: calc(var(--navbar-height) + var(--subbar-height));
   min-height: 100vh;
-  background: var(--bg);
+  background: #ffffff;
 }
 
 .test-layout--no-subbar {
@@ -414,12 +420,12 @@ textarea.input { resize: vertical; min-height: 120px; }
 }
 
 .split-pane--left {
-  border-right: 1px solid var(--border);
-  background: var(--surface);
+  border-right: 1px solid #edf2f7;
+  background: #ffffff;
 }
 
 .split-pane--right {
-  background: #f9fafb;
+  background: #ffffff;
 }
 
 .split-pane__label {
@@ -470,13 +476,13 @@ textarea.input { resize: vertical; min-height: 120px; }
   font-size: 14px;
   line-height: 1.55em;
   color: #111;
-  background: #d9d9d9;
+  background: #f1f5f9;
   background-image: repeating-linear-gradient(
     to right,
     transparent 0,
     transparent calc(var(--ctest-slot-width) - 12px),
-    #8d8d8d calc(var(--ctest-slot-width) - 12px),
-    #8d8d8d calc(var(--ctest-slot-width) - 2px),
+    #cbd5e1 calc(var(--ctest-slot-width) - 12px),
+    #cbd5e1 calc(var(--ctest-slot-width) - 2px),
     transparent calc(var(--ctest-slot-width) - 2px),
     transparent var(--ctest-slot-width)
   );
@@ -493,10 +499,10 @@ textarea.input { resize: vertical; min-height: 120px; }
 }
 .ctest-blank::placeholder { color: transparent; }
 .ctest-blank:focus {
-  background-color: #cfd3d7;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08);
+  background-color: #e2e8f0;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
 }
-.ctest-blank.filled { background-color: #d2d6da; }
+.ctest-blank.filled { background-color: #edf2f7; }
 
 /* ============================================================
    AUDIO PLAYER / SPEAKER SCREEN
@@ -508,7 +514,7 @@ textarea.input { resize: vertical; min-height: 120px; }
   justify-content: center;
   min-height: calc(100vh - var(--navbar-height) - var(--subbar-height));
   padding: 40px 20px;
-  background: var(--bg);
+  background: #ffffff;
   gap: 28px;
 }
 
@@ -815,8 +821,8 @@ textarea.input { resize: vertical; min-height: 120px; }
   min-height: 56px;
   padding: 12px;
   border-radius: var(--radius);
-  border: 2px dashed var(--border);
-  background: var(--bg);
+  border: 2px dashed #edf2f7;
+  background: #ffffff;
   transition: border-color 0.15s;
   align-items: center;
 }

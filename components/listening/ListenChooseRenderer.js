@@ -32,16 +32,16 @@ export default function ListenChooseRenderer({ audioUrl, speakerPhotoUrl, option
   }, [audioUrl]);
 
   return (
-    <div style={{ minHeight: 'calc(100vh - var(--navbar-height) - var(--subbar-height))', background: '#ececec', padding: '24px 24px' }}>
+    <div style={{ minHeight: 'calc(100vh - var(--navbar-height) - var(--subbar-height))', background: '#ffffff', padding: '40px 24px' }}>
       <audio ref={audioRef} onEnded={onAudioEnd} preload="auto" style={{ display: 'none' }} />
 
-      <div style={{ width: '100%', maxWidth: 980, margin: '0 auto', paddingTop: 8 }}>
-        <div style={{ textAlign: 'center', fontSize: 16, fontWeight: 700, color: '#111', marginBottom: 14, lineHeight: 1.35 }}>
+      <div style={{ width: '100%', maxWidth: 1040, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', fontSize: 18, fontWeight: 700, color: '#000', marginBottom: 40, letterSpacing: '-0.01em' }}>
           Choose the best response.
         </div>
 
         {speakerPhotoUrl ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '320px minmax(0, 1fr)', gap: 28, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 1.2fr', gap: 60, alignItems: 'center' }}>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <img
                 src={speakerPhotoUrl}

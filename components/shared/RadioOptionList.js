@@ -15,13 +15,13 @@ export default function RadioOptionList({ options = [], selected, onSelect, gap 
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 16,
-              padding: '6px 0',
+              gap: 14,
+              padding: '8px 0',
               border: 'none',
               background: 'transparent',
               textAlign: 'left',
               cursor: 'pointer',
-              color: isSelected ? 'var(--teal)' : '#444',
+              color: isSelected ? '#111' : '#475569',
               fontSize,
               fontWeight: isSelected ? 600 : 400,
               transition: 'all 0.15s ease',
@@ -32,19 +32,20 @@ export default function RadioOptionList({ options = [], selected, onSelect, gap 
             <span
               aria-hidden="true"
               style={{
-                width: 24,
-                height: 24,
+                width: 26,
+                height: 26,
                 borderRadius: '50%',
-                border: `2px solid ${isSelected ? 'var(--teal)' : '#cbd5e1'}`,
-                background: isSelected ? 'var(--teal)' : 'transparent',
+                border: `1.5px solid ${isSelected ? 'var(--teal)' : '#cbd5e1'}`,
+                background: isSelected ? 'var(--teal)' : '#fcfcff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                transition: 'all 0.15s',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: isSelected ? '0 0 0 4px var(--teal-light)' : 'none'
               }}
             >
-              {isSelected && <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }} />}
+              {isSelected && <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#fff' }} />}
             </span>
             <span style={{ flex: 1, lineHeight: 1.5 }}>{opt}</span>
           </button>
