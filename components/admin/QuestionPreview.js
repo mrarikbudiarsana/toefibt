@@ -107,48 +107,67 @@ function AudioMock({ heading, description, choices = [], speakerPhotoUrl = '' })
 
 function ListenChooseMock({ choices = [], speakerPhotoUrl = '' }) {
   const [selected, setSelected] = useState(null);
-  const items = choices.slice(0, 4);
+  const cleanChoices = choices
+    .slice(0, 4)
+    .map(option => String(option).replace(/^[A-D][\.\)\:\-\s]+/i, ''));
 
   return (
-    <PreviewShell title="Listening Preview" subtitle="Layout matches student-facing Listen and Choose screen.">
+    <PreviewShell title="Listening Preview" subtitle="Listen and Choose displays audio with options only (prompt hidden).">
       <div style={{ width: '100%', maxWidth: 980, margin: '0 auto', padding: '16px 16px 20px' }}>
-        <h2 style={{ textAlign: 'center', fontSize: 22, fontWeight: 700, color: '#111', margin: '0 0 12px', fontFamily: 'Arial, sans-serif' }}>
+        <div style={{ textAlign: 'center', fontSize: 16, fontWeight: 700, color: '#111', marginBottom: 14, lineHeight: 1.35 }}>
           Choose the best response.
-        </h2>
+        </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 30, alignItems: 'start' }}>
+        {speakerPhotoUrl ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '300px minmax(0, 1fr)', gap: 24, alignItems: 'start' }}>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <img src={speakerPhotoUrl} alt="Speaker" style={{ width: 280, maxWidth: '100%', height: 380, objectFit: 'contain', objectPosition: 'center top' }} />
+            </div>
+
+            <div style={{ width: '100%', paddingTop: 10 }}>
+              <RadioOptionList options={cleanChoices} selected={selected} onSelect={setSelected} gap={14} fontSize={15} />
+            </div>
+          </div>
+        ) : (
+          <div style={{ maxWidth: 760, margin: '0 auto' }}>
+            <RadioOptionList options={cleanChoices} selected={selected} onSelect={setSelected} gap={14} fontSize={15} />
+          </div>
+        )}
+      </div>
+    </PreviewShell>
+  );
+}
+
+function ListenConversationMock({ choices = [], speakerPhotoUrl = '', question = '' }) {
+  const [selected, setSelected] = useState(null);
+  const cleanQuestion = question?.trim() || 'What is the main point of the conversation?';
+  const cleanChoices = choices
+    .slice(0, 4)
+    .map(option => String(option).replace(/^[A-D][\.\)\:\-\s]+/i, ''));
+
+  return (
+    <PreviewShell title="Listening Preview" subtitle="Conversation flow preview: audio plays first, then this timed question screen.">
+      <div style={{ width: '100%', maxWidth: 1040, margin: '0 auto', padding: '16px 16px 20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '320px minmax(0, 1fr)', gap: 24, alignItems: 'start' }}>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             {speakerPhotoUrl ? (
-              <img src={speakerPhotoUrl} alt="Speaker" style={{ width: 230, height: 300, objectFit: 'cover', objectPosition: 'center top' }} />
+              <img
+                src={speakerPhotoUrl}
+                alt="Conversation speakers"
+                style={{ width: 300, maxWidth: '100%', height: 400, objectFit: 'contain', objectPosition: 'center top' }}
+              />
             ) : (
-              <div style={{ width: 230, height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4b5563', fontSize: 24 }}>
-                Audio
+              <div style={{ width: 300, height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4b5563', fontSize: 22 }}>
+                Conversation
               </div>
             )}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {items.map((option, i) => {
-              const letter = String.fromCharCode(65 + i);
-              const cleanOption = String(option).replace(/^[A-D][\.\)\:\-\s]+/i, '');
-              const isSelected = selected === letter;
-
-              return (
-                <label
-                  key={letter}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 15, color: isSelected ? 'var(--teal)' : 'var(--text-primary)', cursor: 'pointer', userSelect: 'none' }}
-                >
-                  <input
-                    type="radio"
-                    name="listen-choose-preview-option"
-                    checked={isSelected}
-                    onChange={() => setSelected(letter)}
-                    style={{ width: 18, height: 18, accentColor: 'var(--teal)', cursor: 'pointer', flexShrink: 0 }}
-                  />
-                  <span style={{ lineHeight: 1.45 }}>{cleanOption}</span>
-                </label>
-              );
-            })}
+          <div style={{ width: '100%', paddingTop: 8 }}>
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#111', marginBottom: 12, lineHeight: 1.45 }}>
+              {cleanQuestion}
+            </div>
+            <RadioOptionList options={cleanChoices} selected={selected} onSelect={setSelected} gap={14} fontSize={15} />
           </div>
         </div>
       </div>
@@ -168,6 +187,9 @@ export default function QuestionPreview({ question, sectionType, section, questi
   }, [question.options]);
 
   const taskType = question.task_type;
+  const isConversationFlow =
+    taskType === 'listen_conversation' ||
+    (taskType === 'listen_choose_response' && Boolean(String(question.group_audio_url || '').trim()));
 
   if (taskType === 'c_test') {
     return (
@@ -268,16 +290,27 @@ export default function QuestionPreview({ question, sectionType, section, questi
     );
   }
 
+  if (isConversationFlow) {
+    return (
+      <ListenConversationMock
+        choices={options}
+        speakerPhotoUrl={question.speaker_photo_url || ''}
+        question={question.prompt || ''}
+      />
+    );
+  }
+
   if (taskType === 'listen_choose_response') {
     return (
       <ListenChooseMock
         choices={options}
         speakerPhotoUrl={question.speaker_photo_url || ''}
+        question={question.prompt || ''}
       />
     );
   }
 
-  if (['listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(taskType)) {
+  if (['listen_announcement', 'listen_academic_talk'].includes(taskType)) {
     return (
       <AudioMock
         heading="Listening Preview"

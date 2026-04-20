@@ -9,6 +9,8 @@ import ReadDailyLifeRenderer from '@/components/reading/ReadDailyLifeRenderer';
 import ReadAcademicRenderer from '@/components/reading/ReadAcademicRenderer';
 import ListenChooseRenderer from '@/components/listening/ListenChooseRenderer';
 import ListenAudioFirstRenderer from '@/components/listening/ListenAudioFirstRenderer';
+import ListenConversationQuestionRenderer from '@/components/listening/ListenConversationQuestionRenderer';
+import ListenGroupAudioIntro from '@/components/listening/ListenGroupAudioIntro';
 import BuildSentenceRenderer from '@/components/writing/BuildSentenceRenderer';
 import WriteEmailRenderer from '@/components/writing/WriteEmailRenderer';
 import WriteDiscussionRenderer from '@/components/writing/WriteDiscussionRenderer';
@@ -64,7 +66,7 @@ export default function TestPage() {
 
   // ── Test State ───────────────────────────────────────────
   const [sectionIdx, setSectionIdx] = useState(0);
-  const [screen, setScreen] = useState('intro'); // intro | module_intro | question | module_end | section_end | done
+  const [screen, setScreen] = useState('intro'); // intro | module_intro | listening_audio_intro | question | module_end | section_end | done
   const [currentModule, setCurrentModule] = useState('module1'); // module1 | module2_easy | module2_hard
   const [questions, setQuestions] = useState([]); // questions for current module
   const [questionIdx, setQuestionIdx] = useState(0);
@@ -83,10 +85,114 @@ export default function TestPage() {
   const [mustAnswerModal, setMustAnswerModal] = useState(false);
   const [audioEnded, setAudioEnded] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [listenChooseCountdown, setListenChooseCountdown] = useState(null);
+  const listenChooseTimerRef = useRef(null);
+  const [playedConversationGroups, setPlayedConversationGroups] = useState({});
+  const [pendingConversationAudio, setPendingConversationAudio] = useState(null);
 
   const section = SECTION_ORDER[sectionIdx];
   const sectionLabel = SECTION_LABELS[section] ?? '';
   const currentQuestion = questions[questionIdx] ?? null;
+
+  // Keep all media elements synced with navbar volume state.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const mediaElements = document.querySelectorAll('audio,video');
+    mediaElements.forEach(element => {
+      element.muted = false;
+      element.defaultMuted = false;
+      element.volume = Math.max(0, Math.min(1, volume));
+    });
+  }, [volume, section, screen, questionIdx]);
+
+  function clearListenChooseTimer() {
+    if (listenChooseTimerRef.current) {
+      clearInterval(listenChooseTimerRef.current);
+      listenChooseTimerRef.current = null;
+    }
+  }
+
+  function getConversationGroupKey(question) {
+    if (!isConversationFlowQuestion(question)) return null;
+    const groupToken = question.group_id || question.group_audio_url || question.audio_url || question.id;
+    return `${currentModule}:${groupToken}`;
+  }
+
+  function isConversationFlowQuestion(question) {
+    if (!question) return false;
+    if (question.task_type === 'listen_conversation') return true;
+    // Backward-compatible fallback: some conversation items were stored as listen_choose_response
+    return question.task_type === 'listen_choose_response' && Boolean(String(question.group_audio_url || '').trim());
+  }
+
+  useEffect(() => {
+    clearListenChooseTimer();
+
+    const isTimedListeningQuestion =
+      screen === 'question' &&
+      section === 'listening' &&
+      ['listen_choose_response', 'listen_conversation'].includes(currentQuestion?.task_type);
+
+    if (!isTimedListeningQuestion) {
+      setListenChooseCountdown(null);
+      return;
+    }
+
+    const seconds = isConversationFlowQuestion(currentQuestion) ? 15 : 10;
+    setListenChooseCountdown(seconds);
+    listenChooseTimerRef.current = setInterval(() => {
+      setListenChooseCountdown(prev => {
+        if (prev == null) return null;
+        if (prev <= 1) {
+          clearListenChooseTimer();
+          setTimeout(() => {
+            goNextTimed();
+          }, 0);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearListenChooseTimer();
+  }, [screen, section, currentQuestion?.id, currentQuestion?.task_type]);
+
+  useEffect(() => {
+    const isListeningQuestionScreen =
+      screen === 'question' &&
+      section === 'listening' &&
+      isConversationFlowQuestion(currentQuestion);
+
+    if (!isListeningQuestionScreen) return;
+
+    const groupKey = getConversationGroupKey(currentQuestion);
+    if (!groupKey || playedConversationGroups[groupKey]) return;
+
+    const firstQuestionIndex = questions.findIndex(question => getConversationGroupKey(question) === groupKey);
+    if (firstQuestionIndex !== questionIdx) return;
+
+    setPendingConversationAudio({
+      groupKey,
+      audioUrl: currentQuestion.group_audio_url ?? currentQuestion.audio_url ?? '',
+      speakerPhotoUrl: currentQuestion.speaker_photo_url ?? '',
+    });
+    setScreen('listening_audio_intro');
+  }, [
+    screen,
+    section,
+    questionIdx,
+    questions,
+    currentQuestion?.id,
+    currentQuestion?.task_type,
+    currentQuestion?.group_id,
+    currentQuestion?.group_audio_url,
+    currentQuestion?.audio_url,
+    currentQuestion?.speaker_photo_url,
+    currentModule,
+    playedConversationGroups,
+    currentQuestion,
+  ]);
 
   // ── Load test data ────────────────────────────────────────
   useEffect(() => {
@@ -174,6 +280,7 @@ export default function TestPage() {
 
   // ── Navigate questions ─────────────────────────────────────
   function goNext() {
+    clearListenChooseTimer();
     const isListening = section === 'listening';
     const isWritingOrSpeaking = section === 'writing' || section === 'speaking';
 
@@ -189,6 +296,15 @@ export default function TestPage() {
       setQuestionIdx(i => i + 1);
     } else {
       // End of module
+      handleModuleEnd();
+    }
+  }
+
+  function goNextTimed() {
+    clearListenChooseTimer();
+    if (questionIdx < questions.length - 1) {
+      setQuestionIdx(i => i + 1);
+    } else {
       handleModuleEnd();
     }
   }
@@ -232,6 +348,15 @@ export default function TestPage() {
     setQuestionIdx(0);
     setCurrentModule(mod);
     setScreen('module_intro');
+  }
+
+  function finishConversationAudioIntro() {
+    const groupKey = pendingConversationAudio?.groupKey;
+    if (groupKey) {
+      setPlayedConversationGroups(prev => ({ ...prev, [groupKey]: true }));
+    }
+    setPendingConversationAudio(null);
+    setScreen('question');
   }
 
   function advanceSection() {
@@ -290,6 +415,11 @@ export default function TestPage() {
   const showVolume = screen !== 'module_end' && screen !== 'section_end' && screen !== 'done';
   const showBack = isReadingSection && isQuestionScreen;
   const showSubbar = screen !== 'intro';
+  const questionCountdown = (
+    section === 'listening' &&
+    isQuestionScreen &&
+    ['listen_choose_response', 'listen_conversation'].includes(currentQuestion?.task_type)
+  ) ? listenChooseCountdown : null;
 
   const counterText = (() => {
     if (!isQuestionScreen) return '';
@@ -377,6 +507,17 @@ export default function TestPage() {
     }
 
     // Listening
+    if (isConversationFlowQuestion(currentQuestion)) {
+      return (
+        <ListenConversationQuestionRenderer
+          speakerPhotoUrl={speaker_photo_url}
+          question={prompt}
+          options={options}
+          selected={selected}
+          onSelect={onSelect}
+        />
+      );
+    }
     if (task_type === 'listen_choose_response') {
       const key = qId;
       return (
@@ -391,7 +532,7 @@ export default function TestPage() {
         />
       );
     }
-    if (['listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(task_type)) {
+    if (['listen_announcement', 'listen_academic_talk'].includes(task_type)) {
       return (
         <ListenAudioFirstRenderer
           audioUrl={group_audio_url ?? audio_url}
@@ -535,6 +676,33 @@ export default function TestPage() {
     );
   }
 
+  if (screen === 'listening_audio_intro') {
+    return (
+      <div style={{ minHeight: '100vh' }}>
+        <ToeflNavbar
+          sectionName={sectionLabel}
+          counter=""
+          timeRemaining={timeRemaining}
+          showVolume={true}
+          volume={volume}
+          onVolumeChange={setVolume}
+          showSubbar={true}
+          showBack={false}
+          showNext={false}
+          subbarInfo={`${sectionLabel} — ${currentModule === 'module1' ? 'Module 1' : (mstPaths[section] === 'hard' ? 'Module 2 Advanced' : 'Module 2 Standard')}`}
+        />
+        <div className="test-layout">
+          <ListenGroupAudioIntro
+            key={pendingConversationAudio?.groupKey ?? `${questionIdx}`}
+            audioUrl={pendingConversationAudio?.audioUrl ?? ''}
+            speakerPhotoUrl={pendingConversationAudio?.speakerPhotoUrl ?? ''}
+            onFinished={finishConversationAudioIntro}
+          />
+        </div>
+      </div>
+    );
+  }
+
   // ── MODULE END (MST transition) ────────────────────────────
   if (screen === 'module_end') {
     return (
@@ -590,6 +758,8 @@ export default function TestPage() {
         counter={counterText}
         timeRemaining={timeRemaining}
         showVolume={showVolume}
+        volume={volume}
+        onVolumeChange={setVolume}
         showSubbar={showSubbar}
         showBack={showBack}
         showNext={true}
@@ -597,6 +767,7 @@ export default function TestPage() {
         onNext={goNext}
         nextLabel={questionIdx >= questions.length - 1 ? 'Next Section' : 'Next'}
         nextDisabled={false}
+        questionCountdown={questionCountdown}
         subbarInfo={`${sectionLabel} — ${currentModule === 'module1' ? 'Module 1' : (mstPaths[section] === 'hard' ? 'Module 2 Advanced' : 'Module 2 Standard')}`}
       />
 
@@ -622,3 +793,4 @@ function FullScreenMessage({ children, error }) {
     </div>
   );
 }
+

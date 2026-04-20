@@ -66,6 +66,37 @@ const READING_MODULE_GROUPS = [
   },
 ];
 
+const LISTENING_MODULE_GROUPS = [
+  {
+    value: 'module1',
+    title: 'Module 1',
+    description: 'Questions every student hears before routing.',
+    accent: 'var(--teal)',
+    background: 'rgba(15, 118, 110, 0.06)',
+  },
+  {
+    value: 'module2_hard',
+    title: 'Hard Path',
+    description: 'Advanced listening follow-up after a strong Module 1.',
+    accent: '#b45309',
+    background: 'rgba(217, 119, 6, 0.08)',
+  },
+  {
+    value: 'module2_easy',
+    title: 'Easy Path',
+    description: 'Standard listening follow-up after a lower Module 1 score.',
+    accent: '#2563eb',
+    background: 'rgba(37, 99, 235, 0.08)',
+  },
+  {
+    value: 'module2_both',
+    title: 'Both Paths',
+    description: 'Shared Module 2 listening shown to both easy and hard routes.',
+    accent: '#7c3aed',
+    background: 'rgba(124, 58, 237, 0.08)',
+  },
+];
+
 const SECTION_ORDER = ['reading', 'listening', 'writing', 'speaking'];
 
 const READING_DOC_TYPES = [
@@ -168,6 +199,7 @@ export default function EditTestPage() {
   const [error, setError] = useState('');
   const [activeSection, setActiveSection] = useState(0);
   const [activeReadingModule, setActiveReadingModule] = useState('module1');
+  const [activeListeningModule, setActiveListeningModule] = useState('module1');
   const [collapsedPassages, setCollapsedPassages] = useState({});
 
   useEffect(() => {
@@ -328,6 +360,27 @@ export default function EditTestPage() {
     }));
   }
 
+  function moveListeningQuestionWithinModule(sIdx, qIdx, direction) {
+    setSections(prev => prev.map((section, i) => {
+      if (i !== sIdx) return section;
+      const currentQuestion = section.questions[qIdx];
+      if (!currentQuestion) return section;
+
+      const moduleIndexes = section.questions.reduce((indexes, question, index) => {
+        if (question.module === currentQuestion.module) indexes.push(index);
+        return indexes;
+      }, []);
+
+      const currentPosition = moduleIndexes.indexOf(qIdx);
+      const targetIdx = moduleIndexes[currentPosition + direction];
+      if (targetIdx === undefined) return section;
+
+      const nextQuestions = [...section.questions];
+      [nextQuestions[targetIdx], nextQuestions[qIdx]] = [nextQuestions[qIdx], nextQuestions[targetIdx]];
+      return { ...section, questions: nextQuestions };
+    }));
+  }
+
   async function handleSave() {
     if (!title.trim()) {
       setError('Please enter a test title.');
@@ -417,6 +470,11 @@ export default function EditTestPage() {
     : [];
   const activeReadingGroup = READING_MODULE_GROUPS.find(group => group.value === activeReadingModule) ?? READING_MODULE_GROUPS[0];
   const activeReadingEntries = readingQuestionEntries.filter(({ question }) => question.module === activeReadingModule);
+  const listeningQuestionEntries = section.section_type === 'listening'
+    ? section.questions.map((question, index) => ({ question, index }))
+    : [];
+  const activeListeningGroup = LISTENING_MODULE_GROUPS.find(group => group.value === activeListeningModule) ?? LISTENING_MODULE_GROUPS[0];
+  const activeListeningEntries = listeningQuestionEntries.filter(({ question }) => question.module === activeListeningModule);
 
   return (
     <div style={{ maxWidth: 1120, margin: '0 auto', padding: '32px 24px' }}>
@@ -492,6 +550,12 @@ export default function EditTestPage() {
           {section.section_type === 'reading' && (
             <div style={{ flex: 1, minWidth: 320, padding: '10px 14px', borderRadius: 12, background: 'var(--surface)', color: 'var(--text-muted)', fontSize: 13 }}>
               Reading uses one shared passage bank below. Choose a path tab there, then edit questions in that route.
+            </div>
+          )}
+
+          {section.section_type === 'listening' && (
+            <div style={{ flex: 1, minWidth: 320, padding: '10px 14px', borderRadius: 12, background: 'var(--surface)', color: 'var(--text-muted)', fontSize: 13 }}>
+              Listening questions are grouped by module/path. Switch tabs below to manage each route separately.
             </div>
           )}
         </div>
@@ -710,6 +774,79 @@ export default function EditTestPage() {
                 ))}
               </div>
             </div>
+          </div>
+        ) : section.section_type === 'listening' ? (
+          <div style={{ border: '1px solid var(--border)', borderRadius: 16, background: '#fff', padding: 18, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: activeListeningGroup.accent }}>{activeListeningGroup.title}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, maxWidth: 520 }}>
+                  {activeListeningGroup.description}
+                </div>
+              </div>
+              <button
+                className="btn btn--sm btn--outline"
+                onClick={() => addQuestion(activeSection, { module: activeListeningModule })}
+              >
+                + Add Question
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {LISTENING_MODULE_GROUPS.map(group => {
+                const count = listeningQuestionEntries.filter(({ question }) => question.module === group.value).length;
+                const isActive = group.value === activeListeningModule;
+                return (
+                  <button
+                    key={group.value}
+                    onClick={() => setActiveListeningModule(group.value)}
+                    style={{
+                      border: `1px solid ${isActive ? group.accent : 'var(--border)'}`,
+                      background: isActive ? group.background : '#fff',
+                      color: isActive ? group.accent : 'var(--text-secondary)',
+                      borderRadius: 999,
+                      padding: '10px 14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      fontWeight: 700,
+                    }}
+                  >
+                    <span>{group.title}</span>
+                    <span style={{ fontSize: 12, padding: '3px 8px', borderRadius: 999, background: isActive ? '#fff' : 'var(--bg)', color: 'inherit' }}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {activeListeningEntries.length === 0 ? (
+              <div style={{ border: '1px dashed var(--border)', borderRadius: 12, padding: 18, background: 'var(--surface)', fontSize: 14, color: 'var(--text-muted)' }}>
+                No questions in this listening module yet. Add one to start building this route.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {activeListeningEntries.map(({ question, index }, groupIndex) => (
+                  <QuestionEditor
+                    key={question._id}
+                    q={question}
+                    qIdx={index}
+                    displayNumber={groupIndex + 1}
+                    sectionType={section.section_type}
+                    sec={section}
+                    onChange={(field, value) => updateQuestion(activeSection, index, field, value)}
+                    onOptionChange={(optIdx, value) => updateOption(activeSection, index, optIdx, value)}
+                    onRemove={() => removeQuestion(activeSection, index)}
+                    onMoveUp={() => moveListeningQuestionWithinModule(activeSection, index, -1)}
+                    onMoveDown={() => moveListeningQuestionWithinModule(activeSection, index, 1)}
+                    isFirst={groupIndex === 0}
+                    isLast={groupIndex === activeListeningEntries.length - 1}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <>
