@@ -592,7 +592,7 @@ export default function EditTestPage() {
                   (() => {
                     const normalizedPassage = normalizeReadingPassageEntry(passage);
                     const collapseKey = `${activeSection}-${passageIndex}`;
-                    const isCollapsed = !!collapsedPassages[collapseKey];
+                    const isCollapsed = collapsedPassages[collapseKey] ?? true;
                     const setPassageField = (field, fieldValue) => {
                       const nextPassages = [...readingPassages];
                       nextPassages[passageIndex] = { ...normalizedPassage, [field]: fieldValue };
@@ -754,7 +754,7 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
   const taskTypeLabel = taskTypes.find(taskType => taskType.value === q.task_type)?.label ?? q.task_type ?? 'No task type';
   const showOptions = ['read_daily_life', 'read_academic', 'listen_choose_response', 'listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(q.task_type);
   const showAudio = ['listen_choose_response', 'listen_conversation', 'listen_announcement', 'listen_academic_talk', 'listen_repeat'].includes(q.task_type);
-  const showSpeakerPhoto = ['listen_conversation', 'listen_announcement', 'listen_academic_talk', 'take_interview'].includes(q.task_type);
+  const showSpeakerPhoto = ['listen_choose_response', 'listen_conversation', 'listen_announcement', 'listen_academic_talk', 'take_interview'].includes(q.task_type);
   const showGroupAudio = ['listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(q.task_type);
   const showTiles = q.task_type === 'build_sentence';
   const readingPassageIndex = Number.parseInt(q.group_id || '0', 10);

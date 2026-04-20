@@ -178,7 +178,7 @@ export default function TestPage() {
     const isWritingOrSpeaking = section === 'writing' || section === 'speaking';
 
     // Must Answer enforcement for Listening
-    if (isListening && !answers[currentQuestion?.id] && currentQuestion?.task_type !== 'listen_choose_response') {
+    if (isListening && !answers[currentQuestion?.id]) {
       if (!answers[currentQuestion?.id]) {
         setMustAnswerModal(true);
         return;
@@ -382,6 +382,7 @@ export default function TestPage() {
       return (
         <ListenChooseRenderer
           audioUrl={audio_url}
+          speakerPhotoUrl={speaker_photo_url}
           options={options}
           selected={selected}
           onSelect={onSelect}

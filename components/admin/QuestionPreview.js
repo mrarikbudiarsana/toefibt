@@ -79,11 +79,18 @@ function PreviewShell({ title = 'Question Preview', subtitle, children, flush = 
   );
 }
 
-function AudioMock({ heading, description, choices = [] }) {
+function AudioMock({ heading, description, choices = [], speakerPhotoUrl = '' }) {
   return (
     <PreviewShell title={heading} subtitle="Preview mode uses a static mock instead of autoplay audio or recording.">
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 24px 28px' }}>
         <div style={{ padding: '20px 24px', borderRadius: 12, background: '#fff', border: '1px solid var(--border-light)', marginBottom: 18 }}>
+          {speakerPhotoUrl ? (
+            <img
+              src={speakerPhotoUrl}
+              alt="Speaker"
+              style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--teal)', marginBottom: 10 }}
+            />
+          ) : null}
           <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Audio / interaction preview</div>
           <div style={{ color: 'var(--text-secondary)', lineHeight: 1.6, fontSize: 14 }}>{description}</div>
         </div>
@@ -226,8 +233,9 @@ export default function QuestionPreview({ question, sectionType, section, questi
     return (
       <AudioMock
         heading="Listening Preview"
-        description="In the actual test, audio plays first and the answer choices appear only after the clip ends."
+        description="In the actual test, students hear the audio while seeing the options at the same time."
         choices={options}
+        speakerPhotoUrl={question.speaker_photo_url || ''}
       />
     );
   }

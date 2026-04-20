@@ -409,45 +409,58 @@ export default function ReadDailyLifeRenderer({ passage = '', question, options 
   const noticeDocument = !emailDocument && !socialDocument ? (explicitNotice || parseNoticePassage(sourceText)) : null;
   const genericPassage = sourceText || normalizedPassage.body || '';
   const choices = (options.length ? options : ['Option A', 'Option B', 'Option C', 'Option D']).slice(0, 4);
+  const heading = emailDocument
+    ? 'Read an email.'
+    : noticeDocument
+      ? 'Read a notice.'
+      : socialDocument
+        ? 'Read a social media post.'
+        : 'Read the text.';
 
   return (
-    <div className="split-layout" style={{ height: 'calc(100vh - 96px)', background: '#fff' }}>
-      <div
-        className="split-pane split-pane--left"
-        style={{
-          background: '#f8fafc', 
-          borderRight: '1px solid #e2e8f0',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'flex-start',
-          padding: '60px 24px 24px',
-          overflowY: 'auto'
-        }}
-      >
-        {emailDocument ? (
-          <EmailDocument headers={emailDocument.headers} body={emailDocument.body} />
-        ) : socialDocument ? (
-          <SocialPostDocument name={socialDocument.name} handle={socialDocument.handle} body={socialDocument.body} />
-        ) : noticeDocument ? (
-          <NoticeDocument title={noticeDocument.title} subtitle={noticeDocument.subtitle} body={noticeDocument.body} />
-        ) : (
-          <GenericDocument passage={genericPassage} />
-        )}
-      </div>
+    <div style={{ height: 'calc(100vh - 96px)', background: '#fff', display: 'flex', flexDirection: 'column' }}>
+      <h2 style={{ textAlign: 'center', fontSize: 'clamp(22px, 1.6vw, 34px)', fontWeight: 700, color: '#111', margin: '20px 0 8px 0', fontFamily: 'Arial, sans-serif' }}>
+        {heading}
+      </h2>
 
-      <div className="split-pane split-pane--right" style={{ background: '#fff', padding: '60px 80px', overflowY: 'auto' }}>
-        <div style={{ maxWidth: '580px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', padding: '4px 10px', background: 'var(--teal-light)', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Question {questionNumber}
-            </span>
+      <div className="split-layout" style={{ height: 'calc(100% - 76px)', background: '#fff' }}>
+        <div
+          className="split-pane split-pane--left"
+          style={{
+            background: '#f8fafc',
+            borderRight: '1px solid #e2e8f0',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'flex-start',
+            padding: '24px 24px 24px',
+            overflowY: 'auto'
+          }}
+        >
+          {emailDocument ? (
+            <EmailDocument headers={emailDocument.headers} body={emailDocument.body} />
+          ) : socialDocument ? (
+            <SocialPostDocument name={socialDocument.name} handle={socialDocument.handle} body={socialDocument.body} />
+          ) : noticeDocument ? (
+            <NoticeDocument title={noticeDocument.title} subtitle={noticeDocument.subtitle} body={noticeDocument.body} />
+          ) : (
+            <GenericDocument passage={genericPassage} />
+          )}
+        </div>
+
+        <div className="split-pane split-pane--right" style={{ background: '#fff', padding: '24px 80px', overflowY: 'auto' }}>
+          <div style={{ maxWidth: '580px', margin: '0 auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', padding: '4px 10px', background: 'var(--teal-light)', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Question {questionNumber}
+              </span>
+            </div>
+
+            <p style={{ fontSize: 18, fontWeight: 600, color: '#111', marginBottom: 40, lineHeight: 1.55 }}>
+              {question ?? 'What is the main purpose of this text?'}
+            </p>
+
+            <RadioOptionList options={choices} selected={selected} onSelect={onSelect} gap={24} fontSize={16} />
           </div>
-
-          <p style={{ fontSize: 18, fontWeight: 600, color: '#111', marginBottom: 40, lineHeight: 1.55 }}>
-            {question ?? 'What is the main purpose of this text?'}
-          </p>
-
-          <RadioOptionList options={choices} selected={selected} onSelect={onSelect} gap={24} fontSize={16} />
         </div>
       </div>
     </div>
