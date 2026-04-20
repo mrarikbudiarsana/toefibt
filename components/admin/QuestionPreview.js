@@ -20,7 +20,35 @@ function parseReadingPassages(value) {
     passages = [''];
   }
 
-  return passages.map(passage => typeof passage === 'string' ? passage : String(passage ?? ''));
+  return passages;
+}
+
+function toPassageText(passage) {
+  if (typeof passage === 'string') return passage;
+  if (!passage || typeof passage !== 'object') return String(passage ?? '');
+
+  if (passage.type === 'email') {
+    const headers = [
+      passage.to ? `To: ${passage.to}` : '',
+      passage.from ? `From: ${passage.from}` : '',
+      passage.date ? `Date: ${passage.date}` : '',
+      passage.subject ? `Subject: ${passage.subject}` : '',
+    ].filter(Boolean);
+    return [...headers, '', passage.body || passage.text || ''].join('\n').trim();
+  }
+
+  if (passage.type === 'notice') {
+    return [passage.title || '', passage.subtitle || '', passage.body || passage.text || '']
+      .filter(Boolean)
+      .join('\n')
+      .trim();
+  }
+
+  if (passage.type === 'social') {
+    return [passage.name || '', passage.body || passage.text || ''].filter(Boolean).join('\n').trim();
+  }
+
+  return passage.text || passage.body || '';
 }
 
 function parseJsonLike(value, fallback) {
@@ -114,14 +142,14 @@ export default function QuestionPreview({ question, sectionType, section, questi
   if (taskType === 'read_daily_life' || taskType === 'read_academic') {
     const passages = parseReadingPassages(section?.reading_passage);
     const passageIndex = Number.parseInt(question.group_id || '0', 10);
-    const passage = passages[passageIndex] || passages[0] || '';
+    const passageEntry = passages[passageIndex] || passages[0] || '';
 
     return (
       <PreviewShell subtitle="Student-facing reading preview" flush>
         <div style={{ height: 760, overflow: 'hidden' }}>
           {taskType === 'read_daily_life' ? (
             <ReadDailyLifeRenderer
-              passage={passage}
+              passage={passageEntry}
               question={question.prompt}
               options={options}
               selected={selected}
@@ -131,7 +159,7 @@ export default function QuestionPreview({ question, sectionType, section, questi
             />
           ) : (
             <ReadAcademicRenderer
-              passage={passage}
+              passage={toPassageText(passageEntry)}
               question={question.prompt}
               options={options}
               selected={selected}

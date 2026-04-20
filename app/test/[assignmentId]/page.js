@@ -24,6 +24,34 @@ const SECTION_LABELS = { reading: 'Reading', listening: 'Listening', writing: 'W
 // intro → module_intro → question → module_end → section_end
 const TIMER_DEFAULTS = { reading: 36 * 60, listening: 36 * 60, writing: 29 * 60, speaking: 16 * 60 };
 
+function toPassageText(passage) {
+  if (typeof passage === 'string') return passage;
+  if (!passage || typeof passage !== 'object') return String(passage ?? '');
+
+  if (passage.type === 'email') {
+    const headers = [
+      passage.to ? `To: ${passage.to}` : '',
+      passage.from ? `From: ${passage.from}` : '',
+      passage.date ? `Date: ${passage.date}` : '',
+      passage.subject ? `Subject: ${passage.subject}` : '',
+    ].filter(Boolean);
+    return [...headers, '', passage.body || passage.text || ''].join('\n').trim();
+  }
+
+  if (passage.type === 'notice') {
+    return [passage.title || '', passage.subtitle || '', passage.body || passage.text || '']
+      .filter(Boolean)
+      .join('\n')
+      .trim();
+  }
+
+  if (passage.type === 'social') {
+    return [passage.name || '', passage.body || passage.text || ''].filter(Boolean).join('\n').trim();
+  }
+
+  return passage.text || passage.body || '';
+}
+
 export default function TestPage() {
   const { assignmentId } = useParams();
   const router = useRouter();
@@ -340,12 +368,12 @@ export default function TestPage() {
       }
       
       const passageIdx = parseInt(group_id || '0', 10);
-      const passageText = passages[passageIdx] || passages[0] || '';
+      const passageEntry = passages[passageIdx] || passages[0] || '';
 
       if (task_type === 'read_daily_life') {
-        return <ReadDailyLifeRenderer passage={passageText} question={prompt} options={options} selected={selected} onSelect={onSelect} questionNumber={questionNumber} totalQuestions={totalQuestions} />;
+        return <ReadDailyLifeRenderer passage={passageEntry} question={prompt} options={options} selected={selected} onSelect={onSelect} questionNumber={questionNumber} totalQuestions={totalQuestions} />;
       }
-      return <ReadAcademicRenderer passage={passageText} question={prompt} options={options} selected={selected} onSelect={onSelect} questionNumber={questionNumber} totalQuestions={totalQuestions} />;
+      return <ReadAcademicRenderer passage={toPassageText(passageEntry)} question={prompt} options={options} selected={selected} onSelect={onSelect} questionNumber={questionNumber} totalQuestions={totalQuestions} />;
     }
 
     // Listening

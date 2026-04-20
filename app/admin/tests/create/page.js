@@ -68,6 +68,46 @@ const READING_MODULE_GROUPS = [
 
 const SECTION_ORDER = ['reading', 'listening', 'writing', 'speaking'];
 
+const READING_DOC_TYPES = [
+  { value: 'auto', label: 'Auto Detect (from text)' },
+  { value: 'plain', label: 'Generic Document' },
+  { value: 'notice', label: 'Notice / Announcement' },
+  { value: 'email', label: 'Email' },
+  { value: 'social', label: 'Social Media Post' },
+];
+
+function normalizeReadingPassageEntry(entry) {
+  if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+    return {
+      type: entry.type || 'auto',
+      text: entry.text || '',
+      title: entry.title || '',
+      subtitle: entry.subtitle || '',
+      to: entry.to || '',
+      from: entry.from || '',
+      date: entry.date || '',
+      subject: entry.subject || '',
+      name: entry.name || '',
+      handle: entry.handle || '',
+      body: entry.body || '',
+    };
+  }
+
+  return {
+    type: 'auto',
+    text: typeof entry === 'string' ? entry : String(entry ?? ''),
+    title: '',
+    subtitle: '',
+    to: '',
+    from: '',
+    date: '',
+    subject: '',
+    name: '',
+    handle: '',
+    body: '',
+  };
+}
+
 function parseReadingPassages(value) {
   let passages = [];
 
@@ -81,7 +121,11 @@ function parseReadingPassages(value) {
     passages = [''];
   }
 
-  return passages.map(passage => typeof passage === 'string' ? passage : String(passage ?? ''));
+  return passages.map(normalizeReadingPassageEntry);
+}
+
+function serializeReadingPassages(entries) {
+  return JSON.stringify((entries || []).map(entry => normalizeReadingPassageEntry(entry)));
 }
 
 function emptyQuestion(sectionType) {
@@ -122,6 +166,7 @@ export default function CreateTestPage() {
   const [error, setError] = useState('');
   const [activeSection, setActiveSection] = useState(0);
   const [activeReadingModule, setActiveReadingModule] = useState('module1');
+  const [collapsedPassages, setCollapsedPassages] = useState({});
 
   function updateSection(idx, field, value) {
     setSections(prev => prev.map((section, i) => i === idx ? { ...section, [field]: value } : section));
@@ -446,7 +491,7 @@ export default function CreateTestPage() {
                 </div>
                 <button
                   className="btn btn--sm btn--outline"
-                  onClick={() => updateSection(activeSection, 'reading_passage', JSON.stringify([...readingPassages, '']))}
+                  onClick={() => updateSection(activeSection, 'reading_passage', serializeReadingPassages([...readingPassages, { type: 'auto', text: '' }]))}
                 >
                   + Add Passage
                 </button>
@@ -454,10 +499,21 @@ export default function CreateTestPage() {
 
               <div style={{ display: 'grid', gap: 12 }}>
                 {readingPassages.map((passage, passageIndex) => (
-                  <div
-                    key={passageIndex}
-                    style={{ border: '1px solid var(--border-light)', borderRadius: 12, padding: 14, background: '#fff' }}
-                  >
+                  (() => {
+                    const normalizedPassage = normalizeReadingPassageEntry(passage);
+                    const collapseKey = `${activeSection}-${passageIndex}`;
+                    const isCollapsed = !!collapsedPassages[collapseKey];
+                    const setPassageField = (field, fieldValue) => {
+                      const nextPassages = [...readingPassages];
+                      nextPassages[passageIndex] = { ...normalizedPassage, [field]: fieldValue };
+                      updateSection(activeSection, 'reading_passage', serializeReadingPassages(nextPassages));
+                    };
+
+                    return (
+                    <div
+                      key={passageIndex}
+                      style={{ border: '1px solid var(--border-light)', borderRadius: 12, padding: 14, background: '#fff' }}
+                    >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 10 }}>
                       <div>
                         <div style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>Passage {passageIndex + 1}</div>
@@ -465,43 +521,102 @@ export default function CreateTestPage() {
                           {readingQuestionEntries.filter(({ question }) => question.group_id === String(passageIndex)).length} linked questions
                         </div>
                       </div>
-                      {readingPassages.length > 1 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <button
                           className="btn btn--sm"
-                          style={{ background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid #fca5a5' }}
                           onClick={() => {
-                            const nextPassages = readingPassages.filter((_, index) => index !== passageIndex);
-                            const nextQuestions = section.questions.map(question => {
-                              if (!['read_daily_life', 'read_academic'].includes(question.task_type)) return question;
-                              const currentIndex = Number.parseInt(question.group_id || '0', 10);
-                              if (Number.isNaN(currentIndex) || currentIndex === passageIndex) {
-                                return { ...question, group_id: '0' };
-                              }
-                              if (currentIndex > passageIndex) {
-                                return { ...question, group_id: String(currentIndex - 1) };
-                              }
-                              return question;
-                            });
-                            updateSection(activeSection, 'reading_passage', JSON.stringify(nextPassages));
-                            updateSection(activeSection, 'questions', nextQuestions);
+                            setCollapsedPassages(prev => ({ ...prev, [collapseKey]: !isCollapsed }));
                           }}
                         >
-                          Remove
+                          {isCollapsed ? 'Expand' : 'Collapse'}
                         </button>
-                      )}
+                        {readingPassages.length > 1 && (
+                          <button
+                            className="btn btn--sm"
+                            style={{ background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid #fca5a5' }}
+                            onClick={() => {
+                              const nextPassages = readingPassages.filter((_, index) => index !== passageIndex);
+                              const nextQuestions = section.questions.map(question => {
+                                if (!['read_daily_life', 'read_academic'].includes(question.task_type)) return question;
+                                const currentIndex = Number.parseInt(question.group_id || '0', 10);
+                                if (Number.isNaN(currentIndex) || currentIndex === passageIndex) {
+                                  return { ...question, group_id: '0' };
+                                }
+                                if (currentIndex > passageIndex) {
+                                  return { ...question, group_id: String(currentIndex - 1) };
+                                }
+                                return question;
+                              });
+                              updateSection(activeSection, 'reading_passage', serializeReadingPassages(nextPassages));
+                              updateSection(activeSection, 'questions', nextQuestions);
+                            }}
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
                     </div>
+                    {!isCollapsed && (
+                      <>
+                    <div style={{ marginBottom: 10 }}>
+                      <label className="label" style={{ marginBottom: 6 }}>Document Type</label>
+                      <select
+                        className="input"
+                        value={normalizedPassage.type}
+                        onChange={event => setPassageField('type', event.target.value)}
+                        style={{ width: '100%', maxWidth: 340 }}
+                      >
+                        {READING_DOC_TYPES.map(docType => (
+                          <option key={docType.value} value={docType.value}>{docType.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {normalizedPassage.type === 'notice' && (
+                      <div style={{ display: 'grid', gap: 8, marginBottom: 10 }}>
+                        <input className="input" value={normalizedPassage.title} onChange={event => setPassageField('title', event.target.value)} placeholder="Notice title" />
+                        <input className="input" value={normalizedPassage.subtitle} onChange={event => setPassageField('subtitle', event.target.value)} placeholder="Notice subtitle" />
+                        <textarea className="input" rows={5} value={normalizedPassage.body} onChange={event => setPassageField('body', event.target.value)} placeholder="Notice body..." />
+                      </div>
+                    )}
+
+                    {normalizedPassage.type === 'email' && (
+                      <div style={{ display: 'grid', gap: 8, marginBottom: 10 }}>
+                        <input className="input" value={normalizedPassage.to} onChange={event => setPassageField('to', event.target.value)} placeholder="To" />
+                        <input className="input" value={normalizedPassage.from} onChange={event => setPassageField('from', event.target.value)} placeholder="From" />
+                        <input className="input" value={normalizedPassage.date} onChange={event => setPassageField('date', event.target.value)} placeholder="Date" />
+                        <input className="input" value={normalizedPassage.subject} onChange={event => setPassageField('subject', event.target.value)} placeholder="Subject" />
+                        <textarea className="input" rows={5} value={normalizedPassage.body} onChange={event => setPassageField('body', event.target.value)} placeholder="Email body..." />
+                      </div>
+                    )}
+
+                    {normalizedPassage.type === 'social' && (
+                      <div style={{ display: 'grid', gap: 8, marginBottom: 10 }}>
+                        <input className="input" value={normalizedPassage.name} onChange={event => setPassageField('name', event.target.value)} placeholder="Display name (e.g. Sofia Baker)" />
+                        <input className="input" value={normalizedPassage.handle} onChange={event => setPassageField('handle', event.target.value)} placeholder="Handle (without @)" />
+                        <textarea className="input" rows={5} value={normalizedPassage.body} onChange={event => setPassageField('body', event.target.value)} placeholder="Post text..." />
+                      </div>
+                    )}
+
+                    {(normalizedPassage.type === 'auto' || normalizedPassage.type === 'plain') && (
                     <textarea
                       className="input"
                       rows={5}
-                      value={passage}
-                      onChange={event => {
-                        const nextPassages = [...readingPassages];
-                        nextPassages[passageIndex] = event.target.value;
-                        updateSection(activeSection, 'reading_passage', JSON.stringify(nextPassages));
-                      }}
+                      value={normalizedPassage.text}
+                      onChange={event => setPassageField('text', event.target.value)}
                       placeholder={`Passage ${passageIndex + 1} text...`}
                     />
+                    )}
+                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <p style={{ margin: 0, fontSize: 12, color: 'var(--teal)' }}>
+                        Tip: Use <code>==word==</code> to highlight vocabulary words.
+                      </p>
+                    </div>
+                      </>
+                    )}
                   </div>
+                    );
+                  })()
                 ))}
               </div>
             </div>

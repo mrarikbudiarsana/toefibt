@@ -52,6 +52,101 @@ function parseNoticePassage(passage) {
   return { title, subtitle, body };
 }
 
+function parseSocialPostPassage(passage) {
+  const lines = (passage || '').split(/\r?\n/);
+  if (lines.length === 0) return null;
+
+  let index = 0;
+  const firstLine = (lines[0] || '').trim();
+  const hasSocialMarker = /^(\[social-post\]|social-post:?)$/i.test(firstLine);
+  if (hasSocialMarker) {
+    index = 1;
+  }
+
+  const meta = {};
+  for (; index < lines.length; index += 1) {
+    const line = lines[index].trim();
+    if (!line) {
+      index += 1;
+      break;
+    }
+    const match = line.match(/^(name|author|user|handle):\s*(.+)$/i);
+    if (!match) break;
+    meta[match[1].toLowerCase()] = match[2].trim();
+  }
+
+  const body = lines.slice(index).join('\n').trim();
+  const name = meta.name || meta.author || meta.user || '';
+  const handle = meta.handle || '';
+
+  if (hasSocialMarker) {
+    if (!body) return null;
+    return {
+      name: name || 'Social User',
+      handle,
+      body,
+    };
+  }
+
+  const nonEmptyLines = lines.map(line => line.trim()).filter(Boolean);
+  if (nonEmptyLines.length < 2) return null;
+
+  const inferredName = nonEmptyLines[0];
+  const inferredBody = nonEmptyLines.slice(1).join('\n').trim();
+  const isLikelyName = inferredName.length <= 40 && !/[.!?:]$/.test(inferredName);
+  const looksLikeBody = inferredBody.length >= 80;
+
+  if (!name && isLikelyName && looksLikeBody) {
+    return {
+      name: inferredName,
+      handle: '',
+      body: inferredBody,
+    };
+  }
+
+  if (name && body) {
+    return {
+      name,
+      handle,
+      body,
+    };
+  }
+
+  return null;
+}
+
+function normalizeDailyLifePassage(passage) {
+  if (passage && typeof passage === 'object' && !Array.isArray(passage)) {
+    return {
+      type: passage.type || 'auto',
+      text: passage.text || '',
+      title: passage.title || '',
+      subtitle: passage.subtitle || '',
+      body: passage.body || '',
+      to: passage.to || '',
+      from: passage.from || '',
+      date: passage.date || '',
+      subject: passage.subject || '',
+      name: passage.name || '',
+      handle: passage.handle || '',
+    };
+  }
+
+  return {
+    type: 'auto',
+    text: typeof passage === 'string' ? passage : String(passage ?? ''),
+    title: '',
+    subtitle: '',
+    body: '',
+    to: '',
+    from: '',
+    date: '',
+    subject: '',
+    name: '',
+    handle: '',
+  };
+}
+
 function DocumentContainer({ children }) {
   return (
     <div
@@ -76,30 +171,79 @@ function DocumentContainer({ children }) {
 
 function EmailDocument({ headers, body }) {
   return (
-    <DocumentContainer>
-      {(headers.to || headers.from || headers.subject || headers.date) && (
-        <div style={{ padding: '18px 24px', borderBottom: '1px solid #edf2f7', background: '#fcfdfe' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'min-content 16px 1fr', rowGap: 8, columnGap: 4, fontSize: 13.5, lineHeight: 1.4 }}>
-            {Object.entries({
-              To: headers.to,
-              From: headers.from,
-              Date: headers.date,
-              Subject: headers.subject,
-            }).map(([label, value]) => value ? (
-              <div key={label} style={{ display: 'contents' }}>
-                <div style={{ fontWeight: 600, color: '#6b7280', whiteSpace: 'nowrap' }}>{label}</div>
-                <div style={{ fontWeight: 400, color: '#cbd5e1', textAlign: 'center' }}>:</div>
-                <div style={{ fontWeight: 600, color: '#1f2937' }}>{value}</div>
+    <div
+      style={{
+        width: '100%',
+        maxWidth: '95%',
+        margin: '0 auto',
+        border: '2px solid #b98b62',
+        background: '#f5efe8',
+        padding: 10,
+      }}
+    >
+      <div
+        style={{
+          border: '1px solid #bfc8d4',
+          background: '#f8fafc',
+          padding: 10,
+        }}
+      >
+        <div style={{ display: 'grid', gap: 6, marginBottom: 8 }}>
+          {Object.entries({
+            To: headers.to,
+            From: headers.from,
+            Date: headers.date,
+            Subject: headers.subject,
+          }).map(([label, value]) => (
+            <div key={label} style={{ display: 'grid', gridTemplateColumns: '72px 1fr', gap: 8 }}>
+              <div
+                style={{
+                  border: '1px solid #8a96a8',
+                  background: '#eaf0f5',
+                  padding: '5px 8px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: '#334155',
+                  fontFamily: 'Arial, sans-serif',
+                }}
+              >
+                {label}:
               </div>
-            ) : null)}
+              <div
+                style={{
+                  border: '1px solid #8a96a8',
+                  background: '#fff',
+                  padding: '5px 8px',
+                  fontSize: 13,
+                  color: '#111827',
+                  fontFamily: 'Arial, sans-serif',
+                  minHeight: 30,
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <HighlightedText text={value || ''} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div
+          style={{
+            border: '1px solid #8a96a8',
+            background: '#fff',
+            padding: '12px 14px',
+            minHeight: 420,
+            maxHeight: 520,
+            overflowY: 'auto',
+          }}
+        >
+          <div className="passage-text" style={{ fontSize: 14, lineHeight: 1.45, whiteSpace: 'pre-wrap', color: '#111827', fontFamily: 'Arial, sans-serif' }}>
+            <HighlightedText text={(body || '').replace(/\n{3,}/g, '\n\n').trim()} />
           </div>
         </div>
-      )}
-
-      <div className="passage-text" style={{ padding: '24px', fontSize: 16, lineHeight: 1.6, whiteSpace: 'pre-wrap', color: '#1a202c' }}>
-        <HighlightedText text={(body || '').replace(/\n{3,}/g, '\n\n').trim()} />
       </div>
-    </DocumentContainer>
+    </div>
   );
 }
 
@@ -149,14 +293,121 @@ function NoticeDocument({ title, subtitle, body }) {
   );
 }
 
+function SocialPostDocument({ name, handle, body }) {
+  const initials = (name || 'S')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase() || '')
+    .join('') || 'S';
+
+  const cleanBody = (body || '').replace(/\n{3,}/g, '\n\n').trim();
+
+  return (
+    <div
+      style={{
+        width: '100%',
+        maxWidth: '95%',
+        margin: '0 auto',
+        background: '#d9d9d9',
+        border: '2px solid #525252',
+        borderRadius: 26,
+        padding: 10,
+      }}
+    >
+      <div
+        style={{
+          border: '2px solid #2f2f2f',
+          borderRadius: 20,
+          background: '#efefef',
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ height: 34, background: '#0e7f84' }} />
+        <div style={{ padding: '16px 20px 18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                background: '#de915a',
+                color: '#fff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: 16,
+                fontFamily: 'Arial, sans-serif',
+              }}
+            >
+              {initials}
+            </div>
+            <div>
+              <div style={{ fontSize: 36, lineHeight: 1.1, fontWeight: 700, color: '#111', fontFamily: 'Arial, sans-serif' }}>
+                <HighlightedText text={name || 'Social User'} />
+              </div>
+              {handle && (
+                <div style={{ marginTop: 2, fontSize: 16, lineHeight: 1.2, color: '#4b5563', fontFamily: 'Arial, sans-serif' }}>
+                  <HighlightedText text={`@${handle.replace(/^@+/, '')}`} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="passage-text" style={{ fontSize: 14, lineHeight: 1.45, color: '#111', whiteSpace: 'pre-wrap', fontFamily: 'Arial, sans-serif' }}>
+            <HighlightedText text={cleanBody} />
+          </div>
+
+          <div style={{ marginTop: 12, borderTop: '1px solid #a7a7a7', paddingTop: 8, display: 'flex', justifyContent: 'space-between', color: '#666', fontSize: 12, fontFamily: 'Arial, sans-serif', fontWeight: 700 }}>
+            <span>Like</span>
+            <span>Comment</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Read in Daily Life Renderer
  * Split layout: phone/document mockup on left, MCQ on right
  * Confirmed from ETS screenshots.
  */
 export default function ReadDailyLifeRenderer({ passage = '', question, options = [], selected, onSelect, questionNumber, totalQuestions }) {
-  const emailDocument = parseEmailPassage(passage);
-  const noticeDocument = !emailDocument ? parseNoticePassage(passage) : null;
+  const normalizedPassage = normalizeDailyLifePassage(passage);
+  const sourceText = normalizedPassage.text || '';
+
+  const explicitEmail = normalizedPassage.type === 'email'
+    ? {
+      headers: {
+        to: normalizedPassage.to,
+        from: normalizedPassage.from,
+        date: normalizedPassage.date,
+        subject: normalizedPassage.subject,
+      },
+      body: normalizedPassage.body || normalizedPassage.text || '',
+    }
+    : null;
+  const explicitNotice = normalizedPassage.type === 'notice'
+    ? {
+      title: normalizedPassage.title || '',
+      subtitle: normalizedPassage.subtitle || '',
+      body: normalizedPassage.body || normalizedPassage.text || '',
+    }
+    : null;
+  const explicitSocial = normalizedPassage.type === 'social'
+    ? {
+      name: normalizedPassage.name || 'Social User',
+      handle: normalizedPassage.handle || '',
+      body: normalizedPassage.body || normalizedPassage.text || '',
+    }
+    : null;
+
+  const emailDocument = explicitEmail || parseEmailPassage(sourceText);
+  const socialDocument = !emailDocument ? (explicitSocial || parseSocialPostPassage(sourceText)) : null;
+  const noticeDocument = !emailDocument && !socialDocument ? (explicitNotice || parseNoticePassage(sourceText)) : null;
+  const genericPassage = sourceText || normalizedPassage.body || '';
   const choices = (options.length ? options : ['Option A', 'Option B', 'Option C', 'Option D']).slice(0, 4);
 
   return (
@@ -175,10 +426,12 @@ export default function ReadDailyLifeRenderer({ passage = '', question, options 
       >
         {emailDocument ? (
           <EmailDocument headers={emailDocument.headers} body={emailDocument.body} />
+        ) : socialDocument ? (
+          <SocialPostDocument name={socialDocument.name} handle={socialDocument.handle} body={socialDocument.body} />
         ) : noticeDocument ? (
           <NoticeDocument title={noticeDocument.title} subtitle={noticeDocument.subtitle} body={noticeDocument.body} />
         ) : (
-          <GenericDocument passage={passage} />
+          <GenericDocument passage={genericPassage} />
         )}
       </div>
 
