@@ -35,6 +35,23 @@ function parseEmailPassage(passage) {
   return { headers, body };
 }
 
+function parseNoticePassage(passage) {
+  const nonEmptyLines = (passage || '')
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  if (nonEmptyLines.length < 3) return null;
+
+  const [title, subtitle, ...bodyLines] = nonEmptyLines;
+  const body = bodyLines.join(' ').replace(/\s+/g, ' ').trim();
+
+  if (!title || !subtitle || !body) return null;
+  if (title.length > 80 || subtitle.length > 140) return null;
+
+  return { title, subtitle, body };
+}
+
 function DocumentContainer({ children }) {
   return (
     <div
@@ -96,6 +113,42 @@ function GenericDocument({ passage }) {
   );
 }
 
+function NoticeDocument({ title, subtitle, body }) {
+  return (
+    <div
+      style={{
+        background: '#ececec',
+        border: '2px solid #5b5b5b',
+        width: '100%',
+        margin: '0 auto',
+        padding: 8,
+        maxWidth: '95%',
+      }}
+    >
+      <div
+        style={{
+          border: '1px solid #8a8a8a',
+          padding: '16px 22px 18px',
+          background: 'transparent',
+        }}
+      >
+        <div style={{ textAlign: 'center', marginBottom: 14 }}>
+          <div style={{ fontSize: 20, lineHeight: 1.2, fontWeight: 700, color: '#111', fontFamily: 'Arial, sans-serif' }}>
+            <HighlightedText text={title} />
+          </div>
+          <div style={{ fontSize: 16, lineHeight: 1.25, fontWeight: 700, color: '#111', marginTop: 2, fontFamily: 'Arial, sans-serif' }}>
+            <HighlightedText text={subtitle} />
+          </div>
+        </div>
+
+        <div className="passage-text" style={{ fontSize: 16, lineHeight: 1.5, color: '#111', fontFamily: 'Arial, sans-serif' }}>
+          <HighlightedText text={body} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Read in Daily Life Renderer
  * Split layout: phone/document mockup on left, MCQ on right
@@ -103,6 +156,7 @@ function GenericDocument({ passage }) {
  */
 export default function ReadDailyLifeRenderer({ passage = '', question, options = [], selected, onSelect, questionNumber, totalQuestions }) {
   const emailDocument = parseEmailPassage(passage);
+  const noticeDocument = !emailDocument ? parseNoticePassage(passage) : null;
   const choices = (options.length ? options : ['Option A', 'Option B', 'Option C', 'Option D']).slice(0, 4);
 
   return (
@@ -115,12 +169,14 @@ export default function ReadDailyLifeRenderer({ passage = '', question, options 
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'flex-start',
-          padding: '24px',
+          padding: '60px 24px 24px',
           overflowY: 'auto'
         }}
       >
         {emailDocument ? (
           <EmailDocument headers={emailDocument.headers} body={emailDocument.body} />
+        ) : noticeDocument ? (
+          <NoticeDocument title={noticeDocument.title} subtitle={noticeDocument.subtitle} body={noticeDocument.body} />
         ) : (
           <GenericDocument passage={passage} />
         )}
