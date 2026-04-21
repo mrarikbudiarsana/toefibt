@@ -115,21 +115,38 @@ export default function DashboardPage() {
             </div>
             <span style={{ fontSize: 14, fontWeight: 500 }}>{name}</span>
           </div>
-          <button 
-            onClick={handleLogout}
-            style={{ 
-              background: 'rgba(255,255,255,0.08)', border: 'none', 
-              color: '#fff', padding: '8px 16px', borderRadius: 8, 
-              fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 8,
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
-          >
-            <LogOut size={16} />
-            Sign out
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {user?.user_metadata?.role === 'admin' && (
+              <button 
+                onClick={() => router.push('/admin')}
+                style={{ 
+                  background: 'var(--teal)', border: 'none', 
+                  color: '#fff', padding: '8px 16px', borderRadius: 8, 
+                  fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  transition: 'all 0.2s',
+                  boxShadow: '0 4px 12px rgba(13,115,119,0.3)'
+                }}
+              >
+                Return to Admin
+              </button>
+            )}
+            <button 
+              onClick={handleLogout}
+              style={{ 
+                background: 'rgba(255,255,255,0.08)', border: 'none', 
+                color: '#fff', padding: '8px 16px', borderRadius: 8, 
+                fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 8,
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+            >
+              <LogOut size={16} />
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 

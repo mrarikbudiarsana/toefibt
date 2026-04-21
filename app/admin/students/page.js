@@ -2,29 +2,56 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Users, Search, UserPlus, Mail, Calendar, ArrowRight, UserCheck } from 'lucide-react';
+import { Users, Search, UserPlus, Mail, Calendar, ArrowRight, UserCheck, AlertCircle } from 'lucide-react';
 
 export default function AdminStudentsPage() {
   const router = useRouter();
-  const [students, setStudents] = useState([]);
+   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    const sb = createClient();
-    sb.from('student_profiles')
-      .select(`
-        id, email, full_name, created_at,
-        test_assignments (
-          id,
-          test_submissions (id, status)
-        )
-      `)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        setStudents(data ?? []);
+    async function fetchStudents() {
+      const sb = createClient();
+      try {
+        // 1. Fetch Students (excluding admins)
+        const { data: studentsData, error: studentsError } = await sb
+          .from('student_profiles')
+          .select('id, email, full_name, created_at, role')
+          .eq('role', 'student')
+          .order('created_at', { ascending: false });
+
+        if (studentsError) throw studentsError;
+
+        // 2. Fetch all assignments for these students to calculate stats
+        const studentIds = (studentsData || []).map(s => s.id);
+        const { data: assignData, error: assignError } = await sb
+          .from('test_assignments')
+          .select('id, student_id, test_submissions(id, status)')
+          .in('student_id', studentIds);
+
+        if (assignError) {
+          console.warn('Stats fetch error:', assignError);
+          // We don't throw here so the student list still shows even if stats fail
+          setStudents(studentsData ?? []);
+        } else {
+          // Map stats back to students
+          const enriched = (studentsData || []).map(s => ({
+            ...s,
+            test_assignments: (assignData || []).filter(a => a.student_id === s.id)
+          }));
+          setStudents(enriched);
+        }
+      } catch (err) {
+        console.error('Final fetch error:', err);
+        setError(err.message || JSON.stringify(err));
+      } finally {
         setLoading(false);
-      });
+      }
+    }
+    
+    fetchStudents();
   }, []);
 
   const filtered = students.filter(s => {
@@ -60,6 +87,14 @@ export default function AdminStudentsPage() {
         <div style={{ padding: '80px', textAlign: 'center' }}>
           <div style={{ width: 32, height: 32, border: '2px solid var(--teal-light)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
           <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Loading students...</p>
+        </div>
+      ) : error ? (
+        <div className="card" style={{ padding: '40px', border: '1px solid #fee2e2', background: '#fef2f2', color: '#991b1b', borderRadius: 12, display: 'flex', gap: 12, alignItems: 'center' }}>
+          <AlertCircle size={20} />
+          <div>
+            <strong style={{ display: 'block' }}>Database Error</strong>
+            <span style={{ fontSize: 14, opacity: 0.9 }}>{error}</span>
+          </div>
         </div>
       ) : filtered.length === 0 ? (
         <div className="card glass-card" style={{ textAlign: 'center', padding: '80px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>

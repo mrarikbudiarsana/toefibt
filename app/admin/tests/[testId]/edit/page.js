@@ -18,6 +18,7 @@ const TASK_TYPES = {
     { value: 'listen_academic_talk', label: 'Listen to an Academic Talk' },
   ],
   writing: [
+
     { value: 'build_sentence', label: 'Build a Sentence (Drag & Drop)' },
     { value: 'write_email', label: 'Write an Email' },
     { value: 'write_discussion', label: 'Write for an Academic Discussion' },
@@ -34,6 +35,25 @@ const MODULE_OPTIONS = [
   { value: 'module2_hard', label: 'Module 2 - Hard Path (Advanced)' },
   { value: 'module2_easy', label: 'Module 2 - Easy Path (Standard)' },
 ];
+
+const TASK_TYPE_STYLES = {
+  // Reading
+  c_test: { bg: 'rgba(13, 115, 119, 0.08)', color: '#0d7377' }, // Teal
+  read_daily_life: { bg: 'rgba(37, 99, 235, 0.08)', color: '#2563eb' }, // Blue
+  read_academic: { bg: 'rgba(67, 56, 202, 0.08)', color: '#4338ca' }, // Indigo
+  // Listening
+  listen_choose_response: { bg: 'rgba(217, 119, 6, 0.08)', color: '#d97706' }, // Amber
+  listen_conversation: { bg: 'rgba(234, 88, 12, 0.08)', color: '#ea580c' }, // Orange
+  listen_announcement: { bg: 'rgba(225, 29, 72, 0.08)', color: '#e11d48' }, // Rose
+  listen_academic_talk: { bg: 'rgba(146, 64, 14, 0.08)', color: '#92400e' }, // Brown
+  // Writing
+  build_sentence: { bg: 'rgba(139, 92, 246, 0.08)', color: '#8b5cf6' }, // Purple
+  write_email: { bg: 'rgba(219, 39, 119, 0.08)', color: '#db2777' }, // Pink
+  write_discussion: { bg: 'rgba(124, 58, 237, 0.08)', color: '#7c3aed' }, // Violet
+  // Speaking
+  listen_repeat: { bg: 'rgba(5, 150, 105, 0.08)', color: '#059669' }, // Emerald
+  take_interview: { bg: 'rgba(22, 163, 74, 0.08)', color: '#16a34a' }, // Green
+};
 
 const READING_MODULE_GROUPS = [
   {
@@ -905,24 +925,34 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
     listen_announcement: 'Announcement audio played after directions audio',
     listen_academic_talk: 'Academic talk audio played after directions audio',
   };
-  const audioLabel = isGroupIntroTask ? (mainAudioLabelByType[q.task_type] || 'Main Audio URL (group shared)') : 'Audio URL (question audio)';
-  const audioPlaceholder = isGroupIntroTask ? (mainAudioPlaceholderByType[q.task_type] || 'Main audio played after directions audio') : 'https://.../audio.mp3';
-  const groupAudioLabel = isGroupIntroTask
-    ? 'Directions Audio URL (group intro page)'
-    : 'Group Audio URL (shared passage audio)';
-  const groupAudioPlaceholder = isGroupIntroTask
-    ? 'Audio played on the special intro page'
-    : 'Shared audio for all questions in this group';
+
+  const typeStyle = TASK_TYPE_STYLES[q.task_type] || { bg: 'var(--bg)', color: 'var(--text-muted)' };
   const readingPassageIndex = Number.parseInt(q.group_id || '0', 10);
-  const readingPassages = parseReadingPassages(sec.reading_passage);
   const readingPassageLabel = sectionType === 'reading' && ['read_daily_life', 'read_academic'].includes(q.task_type)
     ? `Passage ${Number.isNaN(readingPassageIndex) ? 1 : readingPassageIndex + 1}`
     : null;
 
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: '#fff' }}>
+    <div style={{ 
+      border: '1px solid var(--border)', 
+      borderLeft: `4px solid ${typeStyle.color}`,
+      borderRadius: 10, 
+      overflow: 'hidden', 
+      background: '#fff',
+      transition: 'all 0.15s ease'
+    }}>
       <div
-        style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'var(--bg)', cursor: 'pointer', userSelect: 'none' }}
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'auto minmax(0, 1fr) auto', 
+          alignItems: 'center', 
+          gap: 14, 
+          padding: '16px 20px', 
+          background: typeStyle.bg,
+          cursor: 'pointer', 
+          userSelect: 'none',
+          borderBottom: '1px solid rgba(0,0,0,0.03)'
+        }}
         onClick={() => setCollapsed(!collapsed)}
       >
         <div style={{ minWidth: 44 }}>
@@ -930,16 +960,26 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
         </div>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+            <span style={{ 
+              fontSize: 10, 
+              fontWeight: 800, 
+              letterSpacing: 0.5, 
+              textTransform: 'uppercase', 
+              color: typeStyle.color,
+              background: typeStyle.bg,
+              padding: '2px 10px',
+              borderRadius: 6,
+              border: `1px solid ${typeStyle.color}20`
+            }}>
               {taskTypeLabel}
             </span>
             {readingPassageLabel && (
-              <span className="badge" style={{ fontSize: 11, background: 'rgba(37, 99, 235, 0.12)', color: '#1d4ed8' }}>
+              <span className="badge" style={{ fontSize: 10, background: '#fff', color: '#1d4ed8', border: '1px solid rgba(37, 99, 235, 0.2)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
                 {readingPassageLabel}
               </span>
             )}
-            <span className={`badge ${q.is_scored ? 'badge--green' : 'badge--warn'}`} style={{ fontSize: 11 }}>
-              {q.is_scored ? 'Scored' : 'Unscored'}
+            <span className={`badge ${q.is_scored ? 'badge--green' : 'badge--warn'}`} style={{ fontSize: 10, border: '1px solid currentColor', background: '#fff' }}>
+              {q.is_scored ? 'Scored' : 'Ghost / Sample'}
             </span>
           </div>
           <div style={{ fontSize: 15, lineHeight: 1.4, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

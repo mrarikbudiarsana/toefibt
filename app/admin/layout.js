@@ -10,6 +10,7 @@ import {
   FileCheck, 
   Users, 
   LogOut,
+  User,
 } from 'lucide-react';
 
 export default function AdminLayout({ children }) {
@@ -123,10 +124,26 @@ export default function AdminLayout({ children }) {
             </div>
           </div>
           <button
+            onClick={() => router.push('/dashboard')}
+            style={{ 
+              background: 'rgba(255,255,255,0.05)', 
+              border: 'none', color: 'var(--teal)', 
+              padding: '10px', borderRadius: 8, 
+              fontSize: 13, fontWeight: 700,
+              cursor: 'pointer', width: '100%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              transition: 'background 0.2s',
+              marginBottom: 8
+            }}
+          >
+            <User size={16} />
+            Switch to Student
+          </button>
+          <button
             onClick={handleLogout}
             style={{ 
               background: 'rgba(255,255,255,0.05)', 
-              border: 'none', color: '#fff', 
+              border: 'none', color: 'rgba(255,255,255,0.6)', 
               padding: '10px', borderRadius: 8, 
               fontSize: 13, fontWeight: 600,
               cursor: 'pointer', width: '100%',

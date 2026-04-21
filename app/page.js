@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, GraduationCap } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,68 +12,90 @@ export default function LoginPage() {
     <main className="login-page">
       {/* Left Brand panel */}
       <div className="login-page__left">
-        <p className="login-page__brand">English with Arik</p>
-        <h1 className="login-page__title">TOEFL iBT<br />Mock Test Platform</h1>
-        <p className="login-page__sub">
-          Practice the official January 2026 format - Reading, Listening, Writing &amp; Speaking - with adaptive scoring and AI feedback.
+        <img
+          src="https://res.cloudinary.com/english-tests-platform/image/upload/v1776770186/4_beadeh.png"
+          alt="English with Arik Logo"
+          style={{ height: '180px', marginBottom: '-20px', zIndex: 10 }}
+        />
+
+        <h1 className="login-page__title" style={{ zIndex: 10 }}>TOEFL iBT<br />Mock Test Platform</h1>
+        <p className="login-page__sub" style={{ zIndex: 10 }}>
+          Practice the official format - Reading, Listening, Writing &amp; Speaking - with adaptive scoring and AI feedback.
         </p>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 28, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 32, justifyContent: 'center', zIndex: 10 }}>
           {['Reading', 'Listening', 'Writing', 'Speaking'].map(s => (
             <span key={s} style={{
-              background: 'rgba(255,255,255,0.18)',
-              border: '1px solid rgba(255,255,255,0.3)',
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.2)',
               borderRadius: 100,
-              padding: '5px 14px',
+              padding: '8px 16px',
               fontSize: 13,
               fontWeight: 600,
-            }}>{s}</span>
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
+            }}>
+              {s}
+            </span>
           ))}
         </div>
 
         <div style={{
-          marginTop: 40,
-          background: 'rgba(0,0,0,0.2)',
-          borderRadius: 10,
-          padding: '16px 20px',
-          maxWidth: 320,
-          fontSize: 13,
-          lineHeight: 1.7,
-          opacity: 0.9,
+          marginTop: 48,
+          background: 'rgba(0,0,0,0.25)',
+          borderRadius: 16,
+          padding: '20px 24px',
+          maxWidth: 360,
+          fontSize: 14,
+          lineHeight: 1.6,
+          border: '1px solid rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(12px)',
+          display: 'flex',
+          gap: 16,
+          alignItems: 'center',
+          zIndex: 10
         }}>
-          <strong>1-6 Band Scale</strong> aligned to CEFR<br />
-          (A1 - C2) - January 2026 Format
+          <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <GraduationCap size={24} color="#fff" />
+          </div>
+          <div>
+            <strong style={{ display: 'block', fontSize: 15, marginBottom: 2 }}>Institutional Grade</strong>
+            <span style={{ opacity: 0.85 }}>Aligned to CEFR (A1 - C2). Designed for Jan 2026 format preparation.</span>
+          </div>
         </div>
       </div>
 
       {/* Right Auth panel */}
       <div className="login-page__right">
-        <div style={{ width: '100%', maxWidth: 380 }}>
-          {/* Tab switcher */}
+        <div className="login-form">
           <div style={{
             display: 'flex',
             marginBottom: 28,
-            borderBottom: '2px solid var(--border)',
+            borderBottom: '1px solid var(--border-light)',
           }}>
             {[
-              { key: 'login', label: 'Sign in' },
-              { key: 'signup', label: 'Create account' },
+              { key: 'login', label: 'Sign In' },
+              { key: 'signup', label: 'Create Account' },
             ].map(t => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
+                type="button"
                 style={{
                   flex: 1,
-                  padding: '12px 0',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  background: 'none',
+                  padding: '0 0 12px 0',
+                  fontSize: 15,
+                  fontWeight: 600,
+                  background: 'transparent',
                   border: 'none',
-                  borderBottom: tab === t.key ? '3px solid var(--teal)' : '3px solid transparent',
-                  color: tab === t.key ? 'var(--teal)' : 'var(--text-muted)',
+                  borderBottom: tab === t.key ? '2px solid var(--teal)' : '2px solid transparent',
+                  color: tab === t.key ? 'var(--teal-dark)' : 'var(--text-muted)',
                   cursor: 'pointer',
-                  marginBottom: '-2px',
-                  transition: 'all 0.15s',
+                  transition: 'all 0.2s ease',
+                  marginBottom: '-1px',
+                  outline: 'none'
                 }}
               >
                 {t.label}
@@ -116,47 +139,63 @@ function LoginForm({ router }) {
   }
 
   return (
-    <form className="login-form" onSubmit={handleLogin}>
+    <form onSubmit={handleLogin}>
       <h2 className="login-form__title">Welcome back</h2>
-      <p className="login-form__sub">Sign in to access your assigned tests.</p>
+      <p className="login-form__sub">Sign in to access your assigned mock tests.</p>
 
-      {error && <div className="login-form__error">{error}</div>}
+      {error && (
+        <div className="login-form__error">
+          <AlertCircle size={18} />
+          {error}
+        </div>
+      )}
 
       <div className="login-form__group">
-        <label className="label" htmlFor="login-email">Email</label>
-        <input
-          id="login-email"
-          type="email"
-          className="input"
-          placeholder="you@example.com"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
-          autoComplete="email"
-        />
+        <label className="label" htmlFor="login-email">Email Address</label>
+        <div className="input-group">
+          <Mail size={18} className="input-icon" />
+          <input
+            id="login-email"
+            type="email"
+            className="input-with-icon"
+            placeholder="you@example.com"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+          />
+        </div>
       </div>
 
       <div className="login-form__group">
         <label className="label" htmlFor="login-password">Password</label>
-        <input
-          id="login-password"
-          type="password"
-          className="input"
-          placeholder="Password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
-          autoComplete="current-password"
-        />
+        <div className="input-group">
+          <Lock size={18} className="input-icon" />
+          <input
+            id="login-password"
+            type="password"
+            className="input-with-icon"
+            placeholder="••••••••••••"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+          />
+        </div>
       </div>
 
       <button
         type="submit"
-        className="btn btn--primary btn--full"
-        style={{ marginTop: 8 }}
+        className="btn-premium btn--full"
+        style={{ marginTop: 12, display: 'flex', justifyContent: 'center', gap: 8 }}
         disabled={loading}
       >
-        {loading ? 'Signing in' : 'Sign in'}
+        {loading ? 'Signing in...' : (
+          <>
+            Sign in
+            <ArrowRight size={18} />
+          </>
+        )}
       </button>
 
       <p style={{ marginTop: 24, fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>
@@ -209,14 +248,19 @@ function SignupForm({ onSuccess }) {
 
   if (done) {
     return (
-      <div className="login-form" style={{ textAlign: 'center', paddingTop: 24 }}>
-        <div style={{ fontSize: 52, marginBottom: 16 }}>Done</div>
-        <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Check your email</h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.7, marginBottom: 28 }}>
+      <div style={{ textAlign: 'center', padding: '24px 0' }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: '50%', background: 'var(--success-bg)', color: 'var(--success)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px'
+        }}>
+          <CheckCircle2 size={32} />
+        </div>
+        <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, color: 'var(--text-primary)' }}>Account Created</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.6, marginBottom: 32 }}>
           We sent a confirmation link to <strong>{email}</strong>.<br />
-          Click it to activate your account, then sign in.
+          Please click the link to verify your account.
         </p>
-        <button className="btn btn--primary btn--full" onClick={onSuccess}>
+        <button className="btn btn--outline btn--full" onClick={onSuccess}>
           Back to Sign in
         </button>
       </div>
@@ -224,79 +268,103 @@ function SignupForm({ onSuccess }) {
   }
 
   return (
-    <form className="login-form" onSubmit={handleSignup}>
-      <h2 className="login-form__title">Create account</h2>
-      <p className="login-form__sub">Register to access your TOEFL iBT mock tests.</p>
+    <form onSubmit={handleSignup}>
+      <h2 className="login-form__title" style={{ fontSize: 22 }}>Create account</h2>
+      <p className="login-form__sub" style={{ marginBottom: 24, fontSize: 14 }}>Register to access your assigned mock tests.</p>
 
-      {error && <div className="login-form__error">{error}</div>}
+      {error && (
+        <div className="login-form__error">
+          <AlertCircle size={18} />
+          {error}
+        </div>
+      )}
 
-      <div className="login-form__group">
+      <div className="login-form__group" style={{ marginBottom: 16 }}>
         <label className="label" htmlFor="signup-name">Full Name</label>
-        <input
-          id="signup-name"
-          type="text"
-          className="input"
-          placeholder="Your full name"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          required
-          autoComplete="name"
-        />
+        <div className="input-group">
+          <User size={18} className="input-icon" />
+          <input
+            id="signup-name"
+            type="text"
+            className="input-with-icon"
+            placeholder="Jane Doe"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            required
+            autoComplete="name"
+          />
+        </div>
       </div>
 
-      <div className="login-form__group">
-        <label className="label" htmlFor="signup-email">Email</label>
-        <input
-          id="signup-email"
-          type="email"
-          className="input"
-          placeholder="you@example.com"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
-          autoComplete="email"
-        />
+      <div className="login-form__group" style={{ marginBottom: 16 }}>
+        <label className="label" htmlFor="signup-email">Email Address</label>
+        <div className="input-group">
+          <Mail size={18} className="input-icon" />
+          <input
+            id="signup-email"
+            type="email"
+            className="input-with-icon"
+            placeholder="you@example.com"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+          />
+        </div>
       </div>
 
-      <div className="login-form__group">
-        <label className="label" htmlFor="signup-password">Password</label>
-        <input
-          id="signup-password"
-          type="password"
-          className="input"
-          placeholder="Min. 8 characters"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
-          autoComplete="new-password"
-        />
-      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+        <div>
+          <label className="label" htmlFor="signup-password">Password</label>
+          <div className="input-group">
+            <Lock size={18} className="input-icon" />
+            <input
+              id="signup-password"
+              type="password"
+              className="input-with-icon"
+              placeholder="Min. 8 char"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              autoComplete="new-password"
+            />
+          </div>
+        </div>
 
-      <div className="login-form__group">
-        <label className="label" htmlFor="signup-confirm">Confirm Password</label>
-        <input
-          id="signup-confirm"
-          type="password"
-          className="input"
-          placeholder="Repeat your password"
-          value={confirm}
-          onChange={e => setConfirm(e.target.value)}
-          required
-          autoComplete="new-password"
-        />
+        <div>
+          <label className="label" htmlFor="signup-confirm">Confirm</label>
+          <div className="input-group">
+            <Lock size={18} className="input-icon" />
+            <input
+              id="signup-confirm"
+              type="password"
+              className="input-with-icon"
+              placeholder="Repeat"
+              value={confirm}
+              onChange={e => setConfirm(e.target.value)}
+              required
+              autoComplete="new-password"
+            />
+          </div>
+        </div>
       </div>
 
       <button
         type="submit"
-        className="btn btn--primary btn--full"
-        style={{ marginTop: 8 }}
+        className="btn-premium btn--full"
+        style={{ marginTop: 12, display: 'flex', justifyContent: 'center', gap: 8 }}
         disabled={loading}
       >
-        {loading ? 'Creating account' : 'Create account'}
+        {loading ? 'Creating...' : (
+          <>
+            Create Account
+            <ArrowRight size={18} />
+          </>
+        )}
       </button>
 
       <p style={{ marginTop: 20, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.6 }}>
-        By creating an account, you agree to use this platform solely for your enrolled TOEFL iBT preparation course with English with Arik.
+        By registering, you agree to use this platform solely for your enrolled preparation course.
       </p>
     </form>
   );
