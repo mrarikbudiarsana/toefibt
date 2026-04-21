@@ -480,12 +480,7 @@ export default function CreateTestPage() {
                     {activeReadingGroup.description}
                   </div>
                 </div>
-                <button
-                  className="btn btn--sm btn--outline"
-                  onClick={() => addQuestion(activeSection, { module: activeReadingModule })}
-                >
-                  + Add Question
-                </button>
+                <div />
               </div>
 
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -543,6 +538,16 @@ export default function CreateTestPage() {
                   ))}
                 </div>
               )}
+
+              <div style={{ position: 'sticky', bottom: -18, margin: '0 -18px -18px -18px', padding: 18, background: 'linear-gradient(to top, #fff 80%, rgba(255,255,255,0))', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, display: 'flex', justifyContent: 'center' }}>
+                <button
+                  className="btn btn--outline"
+                  style={{ width: '100%', boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', background: '#fff' }}
+                  onClick={() => addQuestion(activeSection, { module: activeReadingModule })}
+                >
+                  + Add Question
+                </button>
+              </div>
             </div>
 
             <div style={{ border: '1px solid var(--border)', borderRadius: 16, background: '#f8fafc', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -694,12 +699,7 @@ export default function CreateTestPage() {
                   {activeListeningGroup.description}
                 </div>
               </div>
-              <button
-                className="btn btn--sm btn--outline"
-                onClick={() => addQuestion(activeSection, { module: activeListeningModule })}
-              >
-                + Add Question
-              </button>
+              <div />
             </div>
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -757,6 +757,16 @@ export default function CreateTestPage() {
                 ))}
               </div>
             )}
+
+            <div style={{ position: 'sticky', bottom: -18, margin: '0 -18px -18px -18px', padding: 18, background: 'linear-gradient(to top, #fff 80%, rgba(255,255,255,0))', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, display: 'flex', justifyContent: 'center' }}>
+              <button
+                className="btn btn--outline"
+                style={{ width: '100%', boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', background: '#fff' }}
+                onClick={() => addQuestion(activeSection, { module: activeListeningModule })}
+              >
+                + Add Question
+              </button>
+            </div>
           </div>
         ) : (
           <>
@@ -780,13 +790,15 @@ export default function CreateTestPage() {
               ))}
             </div>
 
-            <button
-              className="btn btn--outline btn--full"
-              style={{ marginTop: 16 }}
-              onClick={() => addQuestion(activeSection)}
-            >
-              + Add Question
-            </button>
+            <div style={{ position: "sticky", bottom: -24, margin: "0 -24px -24px -24px", padding: "16px 24px", background: "linear-gradient(to top, #fff 80%, rgba(255,255,255,0))", borderBottomLeftRadius: 10, borderBottomRightRadius: 10, display: "flex", justifyContent: "center" }}>
+              <button
+                className="btn btn--outline btn--full"
+                style={{ boxShadow: "0 -4px 12px rgba(0,0,0,0.05)", background: "#fff" }}
+                onClick={() => addQuestion(activeSection)}
+              >
+                + Add Question
+              </button>
+            </div>
           </>
         )}
       </div>

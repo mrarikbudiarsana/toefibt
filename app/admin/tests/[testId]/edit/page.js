@@ -590,12 +590,7 @@ export default function EditTestPage() {
                     {activeReadingGroup.description}
                   </div>
                 </div>
-                <button
-                  className="btn btn--sm btn--outline"
-                  onClick={() => addQuestion(activeSection, { module: activeReadingModule })}
-                >
-                  + Add Question
-                </button>
+                <div />
               </div>
 
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -653,6 +648,16 @@ export default function EditTestPage() {
                   ))}
                 </div>
               )}
+
+              <div style={{ position: 'sticky', bottom: -18, margin: '0 -18px -18px -18px', padding: 18, background: 'linear-gradient(to top, #fff 80%, rgba(255,255,255,0))', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, display: 'flex', justifyContent: 'center' }}>
+                <button
+                  className="btn btn--outline"
+                  style={{ width: '100%', boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', background: '#fff' }}
+                  onClick={() => addQuestion(activeSection, { module: activeReadingModule })}
+                >
+                  + Add Question
+                </button>
+              </div>
             </div>
 
             <div style={{ border: '1px solid var(--border)', borderRadius: 16, background: '#f8fafc', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -804,12 +809,7 @@ export default function EditTestPage() {
                   {activeListeningGroup.description}
                 </div>
               </div>
-              <button
-                className="btn btn--sm btn--outline"
-                onClick={() => addQuestion(activeSection, { module: activeListeningModule })}
-              >
-                + Add Question
-              </button>
+              <div />
             </div>
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -867,6 +867,16 @@ export default function EditTestPage() {
                 ))}
               </div>
             )}
+
+            <div style={{ position: 'sticky', bottom: -18, margin: '0 -18px -18px -18px', padding: 18, background: 'linear-gradient(to top, #fff 80%, rgba(255,255,255,0))', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, display: 'flex', justifyContent: 'center' }}>
+              <button
+                className="btn btn--outline"
+                style={{ width: '100%', boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', background: '#fff' }}
+                onClick={() => addQuestion(activeSection, { module: activeListeningModule })}
+              >
+                + Add Question
+              </button>
+            </div>
           </div>
         ) : (
           <>
@@ -890,13 +900,15 @@ export default function EditTestPage() {
               ))}
             </div>
 
-            <button
-              className="btn btn--outline btn--full"
-              style={{ marginTop: 16 }}
-              onClick={() => addQuestion(activeSection)}
-            >
-              + Add Question
-            </button>
+            <div style={{ position: 'sticky', bottom: -24, margin: '0 -24px -24px -24px', padding: '16px 24px', background: 'linear-gradient(to top, #fff 80%, rgba(255,255,255,0))', borderBottomLeftRadius: 10, borderBottomRightRadius: 10, display: 'flex', justifyContent: 'center' }}>
+              <button
+                className="btn btn--outline btn--full"
+                style={{ boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', background: '#fff' }}
+                onClick={() => addQuestion(activeSection)}
+              >
+                + Add Question
+              </button>
+            </div>
           </>
         )}
       </div>
@@ -931,6 +943,17 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
   const readingPassageLabel = sectionType === 'reading' && ['read_daily_life', 'read_academic'].includes(q.task_type)
     ? `Passage ${Number.isNaN(readingPassageIndex) ? 1 : readingPassageIndex + 1}`
     : null;
+
+  const audioLabel = isGroupIntroTask ? (mainAudioLabelByType[q.task_type] || 'Main Audio URL (group shared)') : 'Audio URL (question audio)';
+  const audioPlaceholder = isGroupIntroTask ? (mainAudioPlaceholderByType[q.task_type] || 'Main audio played after directions audio') : 'https://.../audio.mp3';
+  const groupAudioLabel = isGroupIntroTask
+    ? 'Directions Audio URL (group intro page)'
+    : 'Group Audio URL (shared passage audio)';
+  const groupAudioPlaceholder = isGroupIntroTask
+    ? 'Audio played on the special intro page'
+    : 'Shared audio for all questions in this group';
+
+  const readingPassages = parseReadingPassages(sec.reading_passage);
 
   return (
     <div style={{ 
