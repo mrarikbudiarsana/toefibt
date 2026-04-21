@@ -360,7 +360,7 @@ export default function HardwareCheckPage() {
                 margin: '0 auto 20px',
                 border: '1px solid rgba(13, 115, 119, 0.1)'
               }}>
-                This is a simulation of the official ETS TOEFL iBT equipment check.
+                This is not an official check; it’s only a simulation.
               </div>
             </>
           )}

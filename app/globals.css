@@ -93,7 +93,7 @@ html, body {
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
   border-radius: 20px;
-  padding: 48px;
+  padding: 24px; /* Reduced default padding for better dashboard fit */
 }
 
 .btn-premium {
