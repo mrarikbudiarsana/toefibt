@@ -566,6 +566,10 @@ export default function TestPage() {
       const tiles = tiles_data ? (typeof tiles_data === 'string' ? JSON.parse(tiles_data) : tiles_data) : [];
       return (
         <BuildSentenceRenderer
+          prompt={prompt}
+          speaker1PhotoUrl={speaker_photo_url}
+          speaker2PhotoUrl={audio_url}
+          options={options}
           tiles={tiles}
           answer={writingAnswers[qId] ?? []}
           onAnswer={ordered => setWritingAnswers(prev => ({ ...prev, [qId]: ordered }))}

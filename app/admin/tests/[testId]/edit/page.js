@@ -1186,18 +1186,90 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
           )}
 
           {showTiles && (
-            <div>
-              <label className="label" htmlFor={`tiles-${q._id}`}>Word Tiles (comma-separated)</label>
-              <input
-                id={`tiles-${q._id}`}
-                className="input"
-                value={q.tiles_data}
-                onChange={event => onChange('tiles_data', event.target.value)}
-                placeholder="e.g. The, students, are, studying, English"
-              />
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-                Words will be scrambled automatically.
-              </p>
+            <div style={{ backgroundColor: '#f8fafc', padding: 16, borderRadius: 8, border: '1px solid #e2e8f0', marginTop: 12 }}>
+              <div style={{ marginBottom: 16 }}>
+                <label className="label" htmlFor={`title-${q._id}`}>Title (optional)</label>
+                <input
+                  id={`title-${q._id}`}
+                  className="input"
+                  value={q.instructions || ''}
+                  onChange={event => onChange('instructions', event.target.value)}
+                  placeholder="Make an appropriate sentence."
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label className="label" htmlFor={`s1photo-${q._id}`}>Speaker 1 Image URL (optional)</label>
+                  <input
+                    id={`s1photo-${q._id}`}
+                    className="input"
+                    value={q.speaker_photo_url || ''}
+                    onChange={event => onChange('speaker_photo_url', event.target.value)}
+                    placeholder="https://..."
+                  />
+                </div>
+                <div>
+                  <label className="label" htmlFor={`prompt-${q._id}`}>Speaker 1 Text (optional)</label>
+                  <input
+                    id={`prompt-${q._id}`}
+                    className="input"
+                    value={q.prompt || ''}
+                    onChange={event => onChange('prompt', event.target.value)}
+                    placeholder="What was the highlight..."
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label className="label" htmlFor={`s2photo-${q._id}`}>Speaker 2 Image URL (optional)</label>
+                  <input
+                    id={`s2photo-${q._id}`}
+                    className="input"
+                    value={q.audio_url || ''}
+                    onChange={event => onChange('audio_url', event.target.value)}
+                    placeholder="https://..."
+                  />
+                </div>
+                <div>
+                  <label className="label" htmlFor={`gaps-${q._id}`}>Speaker 2 Text / Gaps</label>
+                  <textarea
+                    id={`gaps-${q._id}`}
+                    className="input"
+                    style={{ minHeight: 80 }}
+                    value={(q.options ?? [])[0] ?? ''}
+                    onChange={event => {
+                      const options = [...(q.options ?? ['', ''])];
+                      options[0] = event.target.value;
+                      onChange('options', options);
+
+                      // Extract correct answer
+                      const matches = [...event.target.value.matchAll(/\[\[(.*?)\]\]/g)];
+                      if (matches.length > 0) {
+                        const extracted = matches.map(m => m[1].trim()).join(' ');
+                        onChange('correct_answer', extracted);
+                      }
+                    }}
+                    placeholder="The [[old city]] [[tour guides]] [[were]] fantastic."
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="label" htmlFor={`distractors-${q._id}`}>Distractors (comma separated)</label>
+                <input
+                  id={`distractors-${q._id}`}
+                  className="input"
+                  value={(q.options ?? [])[1] ?? ''}
+                  onChange={event => {
+                    const options = [...(q.options ?? ['', ''])];
+                    options[1] = event.target.value;
+                    onChange('options', options);
+                  }}
+                  placeholder="was, their, who"
+                />
+              </div>
             </div>
           )}
 
