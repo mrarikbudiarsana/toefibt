@@ -41,15 +41,22 @@ export default function BuildSentenceRenderer({ prompt, speaker1PhotoUrl, speake
   }, [correctWords, distractorsStr]);
 
   // Shuffle initial pool so they appear scrambled to the student
+  // We use a state with a lazy initializer and an effect to handle reshuffling
   const [shuffledTiles, setShuffledTiles] = useState([]);
-  
+  const lastPoolKey = useRef('');
+
   useEffect(() => {
-    const arr = [...initialPool];
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
+    const poolKey = JSON.stringify(initialPool);
+    if (lastPoolKey.current !== poolKey) {
+      const arr = [...initialPool];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      lastPoolKey.current = poolKey;
+      // Using setTimeout to avoid cascading render error in some environments
+      setTimeout(() => setShuffledTiles(arr), 0);
     }
-    setShuffledTiles(arr);
   }, [initialPool]);
 
   // Ensure we have exact number of slots as correct words

@@ -39,8 +39,8 @@ export default function ListenAudioFirstRenderer({
   questionInGroup = 1,
 }) {
   const audioRef = useRef(null);
-  const [phase, setPhase] = useState('audio'); // 'audio' | 'question'
-  const [audioStatus, setAudioStatus] = useState('loading'); // loading | playing | ended | error
+  const [phase, setPhase] = useState(() => questionInGroup === 1 ? 'audio' : 'question');
+  const [audioStatus, setAudioStatus] = useState(() => questionInGroup === 1 ? 'loading' : 'ended');
 
   const TASK_LABELS = {
     listen_conversation: 'Conversation',
@@ -50,27 +50,21 @@ export default function ListenAudioFirstRenderer({
   const taskLabel = TASK_LABELS[taskType] ?? 'Listening';
 
   useEffect(() => {
-    if (!audioRef.current) return;
-    if (questionInGroup === 1) {
-      // First question in group  play audio, then show question
-      setPhase('audio');
-      setAudioStatus('loading');
-      if (audioUrl) {
-        audioRef.current.src = audioUrl;
-        audioRef.current.play()
-          .then(() => setAudioStatus('playing'))
-          .catch(() => {
+    if (!audioRef.current || questionInGroup !== 1) return;
+
+    if (audioUrl) {
+      audioRef.current.src = audioUrl;
+      audioRef.current.play()
+        .then(() => setAudioStatus('playing'))
+        .catch(() => {
+          setTimeout(() => {
             setAudioStatus('error');
             setPhase('question');
-          });
-      } else {
-        setAudioStatus('ended');
-        setPhase('question');
-      }
+          }, 0);
+        });
     } else {
-      // Subsequent questions for the same audio  go straight to question
-      setPhase('question');
       setAudioStatus('ended');
+      setPhase('question');
     }
   }, [audioUrl, questionInGroup]);
 

@@ -473,7 +473,7 @@ export default function HardwareCheckPage() {
                   <div style={{ background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: 12, padding: '16px' }}>
                     <div style={{ fontWeight: 700, color: '#b91c1c', marginBottom: 4, fontSize: 14 }}>Access Blocked</div>
                     <p style={{ fontSize: 12, color: '#991b1b', lineHeight: 1.5, marginBottom: 12 }}>
-                      Microphone access was denied. Please check your browser's permission settings.
+                      Microphone access was denied. Please check your browser&apos;s permission settings.
                     </p>
                     <button className="btn btn--sm" style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontWeight: 600, fontSize: 12 }} onClick={startMic}>Retry</button>
                   </div>
