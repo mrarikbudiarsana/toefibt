@@ -242,16 +242,19 @@ export default function QuestionPreview({ question, sectionType, section, questi
   }
 
   if (taskType === 'build_sentence') {
-    const tiles = parseJsonLike(question.tiles_data, []);
     return (
       <PreviewShell subtitle="Student-facing writing preview" flush>
         <div style={{ height: 640, overflow: 'hidden' }}>
           <BuildSentenceRenderer
-            tiles={Array.isArray(tiles) ? tiles : []}
+            prompt={question.prompt}
+            speaker1PhotoUrl={question.speaker_photo_url}
+            speaker2PhotoUrl={question.audio_url}
+            options={options}
             answer={tileAnswer}
             onAnswer={setTileAnswer}
             questionNumber={questionNumber}
             totalQuestions={totalQuestions}
+            title={options[2]}
           />
         </div>
       </PreviewShell>

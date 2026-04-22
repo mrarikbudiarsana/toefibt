@@ -1128,6 +1128,7 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
             </div>
           )}
 
+          {!showTiles && (
           <div>
             <label className="label" htmlFor={`prompt-${q._id}`}>
               {q.task_type === 'listen_repeat' ? 'Sentence to Repeat' : q.task_type === 'c_test' ? 'C-Test Passage Text' : 'Question / Prompt'}
@@ -1152,6 +1153,7 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
               </div>
             )}
           </div>
+          )}
 
           {showOptions && (
             <div>
@@ -1192,8 +1194,12 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
                 <input
                   id={`title-${q._id}`}
                   className="input"
-                  value={q.instructions || ''}
-                  onChange={event => onChange('instructions', event.target.value)}
+                  value={(q.options ?? [])[2] || ''}
+                  onChange={event => {
+                    const options = [...(q.options ?? ['', '', '', ''])];
+                    options[2] = event.target.value;
+                    onChange('options', options);
+                  }}
                   placeholder="Make an appropriate sentence."
                 />
               </div>
@@ -1206,7 +1212,7 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
                     className="input"
                     value={q.speaker_photo_url || ''}
                     onChange={event => onChange('speaker_photo_url', event.target.value)}
-                    placeholder="https://..."
+                    placeholder="https://example.com/speaker1.jpg"
                   />
                 </div>
                 <div>
@@ -1216,7 +1222,7 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
                     className="input"
                     value={q.prompt || ''}
                     onChange={event => onChange('prompt', event.target.value)}
-                    placeholder="What was the highlight..."
+                    placeholder="What did you think of the tour?"
                   />
                 </div>
               </div>
@@ -1229,7 +1235,7 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
                     className="input"
                     value={q.audio_url || ''}
                     onChange={event => onChange('audio_url', event.target.value)}
-                    placeholder="https://..."
+                    placeholder="https://example.com/speaker2.jpg"
                   />
                 </div>
                 <div>
@@ -1240,35 +1246,65 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
                     style={{ minHeight: 80 }}
                     value={(q.options ?? [])[0] ?? ''}
                     onChange={event => {
-                      const options = [...(q.options ?? ['', ''])];
-                      options[0] = event.target.value;
+                      const val = event.target.value;
+                      const options = [...(q.options ?? ['', '', '', ''])];
+                      options[0] = val;
                       onChange('options', options);
 
-                      // Extract correct answer
-                      const matches = [...event.target.value.matchAll(/\[\[(.*?)\]\]/g)];
-                      if (matches.length > 0) {
-                        const extracted = matches.map(m => m[1].trim()).join(' ');
-                        onChange('correct_answer', extracted);
-                      }
+                      // Extract correct answer sequence
+                      const matches = [...val.matchAll(/\[\[(.*?)\]\]/g)];
+                      const extracted = matches.map(m => m[1].trim()).join(' ');
+                      onChange('correct_answer', extracted);
+
+                      // Update tiles_data (pool)
+                      const correctWords = matches.map(m => m[1].trim());
+                      const distractors = (options[1] || '').split(',').map(d => d.trim()).filter(Boolean);
+                      onChange('tiles_data', [...correctWords, ...distractors]);
                     }}
                     placeholder="The [[old city]] [[tour guides]] [[were]] fantastic."
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="label" htmlFor={`distractors-${q._id}`}>Distractors (comma separated)</label>
-                <input
-                  id={`distractors-${q._id}`}
-                  className="input"
-                  value={(q.options ?? [])[1] ?? ''}
-                  onChange={event => {
-                    const options = [...(q.options ?? ['', ''])];
-                    options[1] = event.target.value;
-                    onChange('options', options);
-                  }}
-                  placeholder="was, their, who"
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label className="label" htmlFor={`distractors-${q._id}`}>Distractors (comma separated)</label>
+                  <input
+                    id={`distractors-${q._id}`}
+                    className="input"
+                    value={(q.options ?? [])[1] ?? ''}
+                    onChange={event => {
+                      const val = event.target.value;
+                      const options = [...(q.options ?? ['', '', '', ''])];
+                      options[1] = val;
+                      onChange('options', options);
+
+                      // Update tiles_data (pool)
+                      const sentence = options[0] || '';
+                      const matches = [...sentence.matchAll(/\[\[(.*?)\]\]/g)];
+                      const correctWords = matches.map(m => m[1].trim());
+                      const distractors = val.split(',').map(d => d.trim()).filter(Boolean);
+                      onChange('tiles_data', [...correctWords, ...distractors]);
+                    }}
+                    placeholder="was, their, who"
+                  />
+                </div>
+                <div>
+                  <label className="label">Extracted Answer (Auto)</label>
+                  <div style={{ 
+                    padding: '8px 12px', 
+                    background: '#f1f5f9', 
+                    borderRadius: 6, 
+                    fontSize: 13, 
+                    color: '#475569', 
+                    minHeight: 38,
+                    display: 'flex',
+                    alignItems: 'center',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    {q.correct_answer || <span style={{ fontStyle: 'italic', opacity: 0.5 }}>No gaps detected</span>}
+                  </div>
+                </div>
               </div>
             </div>
           )}
