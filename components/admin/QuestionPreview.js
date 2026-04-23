@@ -9,6 +9,7 @@ import WriteEmailRenderer from '@/components/writing/WriteEmailRenderer';
 import WriteDiscussionRenderer from '@/components/writing/WriteDiscussionRenderer';
 import ListenRepeatRenderer from '@/components/speaking/ListenRepeatRenderer';
 import ListenRepeatIntro from '@/components/speaking/ListenRepeatIntro';
+import TakeInterviewRenderer from '@/components/speaking/TakeInterviewRenderer';
 import RadioOptionList from '@/components/shared/RadioOptionList';
 
 function parseReadingPassages(value) {
@@ -371,10 +372,19 @@ export default function QuestionPreview({ question, sectionType, section, questi
 
   if (taskType === 'take_interview') {
     return (
-      <AudioMock
-        heading="Speaking Preview"
-        description={`Interview question: ${question.prompt || 'Student reads the interviewer prompt, prepares, then records an answer.'}`}
-      />
+      <PreviewShell subtitle="Student-facing speaking preview" flush>
+        <div style={{ height: 760, overflow: 'auto', position: 'relative' }}>
+          <TakeInterviewRenderer
+            question={question.prompt || ''}
+            audioUrl={question.audio_url || ''}
+            interviewerPhotoUrl={question.speaker_photo_url || ''}
+            prepSeconds={0}
+            onRecordingReady={() => {}}
+            questionNumber={questionNumber}
+            totalQuestions={totalQuestions}
+          />
+        </div>
+      </PreviewShell>
     );
   }
 

@@ -765,6 +765,8 @@ export default function TestPage() {
           question={prompt}
           audioUrl={audio_url}
           interviewerPhotoUrl={speaker_photo_url}
+          prepSeconds={0}
+          autoAdvanceDelaySeconds={5}
           onRecordingReady={blob => setSpeakingBlobs(prev => ({ ...prev, [qId]: blob }))}
           onAutoAdvance={goNextTimed}
           questionNumber={questionNumber}

@@ -24,6 +24,7 @@ export default function TakeInterviewRenderer({
   audioUrl = null,
   prepSeconds = 15,
   maxRecordSeconds = 45,
+  autoAdvanceDelaySeconds = 5,
   onRecordingReady,
   onAutoAdvance,
   questionNumber,
@@ -102,6 +103,10 @@ export default function TakeInterviewRenderer({
   }
 
   function startPrep() {
+    if (prepSeconds <= 0) {
+      startRecording();
+      return;
+    }
     setPhase('prep');
     setPrepRemaining(prepSeconds);
     let remaining = prepSeconds;
@@ -154,7 +159,11 @@ export default function TakeInterviewRenderer({
 
   function startAutoAdvance() {
     if (!onAutoAdvance) return;
-    let count = 5;
+    if (autoAdvanceDelaySeconds <= 0) {
+      onAutoAdvance();
+      return;
+    }
+    let count = autoAdvanceDelaySeconds;
     setAutoAdvanceCountdown(count);
     const id = setInterval(() => {
       count--;
@@ -167,7 +176,7 @@ export default function TakeInterviewRenderer({
   }
 
   const recordProgress = (recordSeconds / maxRecordSeconds) * 100;
-  const prepProgress = ((prepSeconds - prepRemaining) / prepSeconds) * 100;
+  const prepProgress = prepSeconds > 0 ? ((prepSeconds - prepRemaining) / prepSeconds) * 100 : 100;
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 32px' }}>
@@ -244,25 +253,6 @@ export default function TakeInterviewRenderer({
         </div>
       </div>
 
-      {/* Question card (if text provided) */}
-      {question && (
-        <div style={{
-          background: '#ffffff',
-          border: '1.5px solid #edf2f7',
-          borderLeft: '4px solid var(--teal)',
-          borderRadius: 12,
-          padding: '20px 24px',
-          marginBottom: 24,
-          fontSize: 16,
-          fontWeight: 600,
-          color: '#000',
-          lineHeight: 1.5,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-        }}>
-          {question}
-        </div>
-      )}
-
       {/*  PREP PHASE  */}
       {phase === 'prep' && (
         <div style={{ textAlign: 'center' }}>
@@ -318,12 +308,6 @@ export default function TakeInterviewRenderer({
           {onAutoAdvance && (
             <div style={{ marginBottom: 16, fontSize: 13, color: 'var(--teal)', fontWeight: 600 }}>
               Next question in {autoAdvanceCountdown}s...
-            </div>
-          )}
-          {playbackUrl && (
-            <div style={{ background: 'var(--surface)', padding: 16, borderRadius: 12, display: 'inline-block' }}>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>Review response:</p>
-              <audio controls src={playbackUrl} style={{ height: 32 }} />
             </div>
           )}
         </div>
