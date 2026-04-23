@@ -15,7 +15,7 @@ import { useState, useRef, useEffect } from 'react';
  *   maxRecordSeconds: number
  *   onRecordingReady: (blob: Blob) => void
  */
-export default function ListenRepeatRenderer({ audioUrl, prompt = '', maxRecordSeconds = 15, onRecordingReady }) {
+export default function ListenRepeatRenderer({ audioUrl, speakerPhotoUrl = '', prompt = '', maxRecordSeconds = 15, onRecordingReady }) {
   const [phase, setPhase] = useState('audio'); // audio | countdown | recording | done
   const [countdown, setCountdown] = useState(3);
   const [recordSeconds, setRecordSeconds] = useState(0);
@@ -103,6 +103,13 @@ export default function ListenRepeatRenderer({ audioUrl, prompt = '', maxRecordS
       {/*  AUDIO PHASE  */}
       {phase === 'audio' && (
         <>
+          {speakerPhotoUrl ? (
+            <img
+              src={speakerPhotoUrl}
+              alt="Speaking prompt"
+              style={{ width: 260, maxWidth: '90%', height: 220, objectFit: 'contain', marginBottom: 6 }}
+            />
+          ) : null}
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--teal)', marginBottom: 8 }}>
             Listen and Repeat
           </div>
@@ -120,6 +127,13 @@ export default function ListenRepeatRenderer({ audioUrl, prompt = '', maxRecordS
       {/*  COUNTDOWN PHASE  */}
       {phase === 'countdown' && (
         <>
+          {speakerPhotoUrl ? (
+            <img
+              src={speakerPhotoUrl}
+              alt="Speaking prompt"
+              style={{ width: 240, maxWidth: '90%', height: 200, objectFit: 'contain', marginBottom: 4 }}
+            />
+          ) : null}
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--teal)', marginBottom: 8 }}>
             Get Ready
           </div>
@@ -140,6 +154,13 @@ export default function ListenRepeatRenderer({ audioUrl, prompt = '', maxRecordS
       {/*  RECORDING PHASE  */}
       {phase === 'recording' && (
         <>
+          {speakerPhotoUrl ? (
+            <img
+              src={speakerPhotoUrl}
+              alt="Speaking prompt"
+              style={{ width: 220, maxWidth: '90%', height: 180, objectFit: 'contain', marginBottom: 2 }}
+            />
+          ) : null}
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--danger)', marginBottom: 8 }}>
             x Recording
           </div>

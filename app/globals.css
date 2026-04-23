@@ -449,7 +449,10 @@ textarea.input { resize: vertical; min-height: 120px; }
 .passage-hl {
   background: #d1d5db; /* Gray highlight like ETS screenshots */
   color: #111;
-  padding: 0 4px;
+  display: inline-block;
+  line-height: 1.25;
+  padding: 0.02em 0.3em;
+  vertical-align: baseline;
   border-radius: 2px;
   font-weight: inherit;
 }

@@ -338,7 +338,13 @@ export default function CreateTestPage() {
         if (sErr) throw sErr;
 
         const questionRows = section.questions.map((question, index) => {
-          const options = question.options?.filter(option => option.trim());
+          const rawOptions = Array.isArray(question.options) ? question.options.map(option => String(option ?? '')) : [];
+          const options = ['build_sentence', 'write_email', 'write_discussion', 'listen_repeat'].includes(question.task_type)
+            ? (rawOptions.some(option => option.trim()) ? rawOptions : null)
+            : (() => {
+                const filtered = rawOptions.filter(option => option.trim());
+                return filtered.length ? filtered : null;
+              })();
           const tiles = question.task_type === 'build_sentence' && question.tiles_data.trim()
             ? question.tiles_data.trim().split(',').map(tile => tile.trim())
             : null;
@@ -349,7 +355,7 @@ export default function CreateTestPage() {
             task_type: question.task_type,
             is_scored: question.is_scored,
             prompt: question.prompt.trim(),
-            options: options?.length ? options : null,
+            options,
             correct_answer: question.correct_answer.trim() || null,
             blanks_data: null,
             audio_url: question.audio_url.trim() || null,
@@ -813,9 +819,12 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
   const taskTypeLabel = taskTypes.find(taskType => taskType.value === q.task_type)?.label ?? q.task_type ?? 'No task type';
   const showOptions = ['read_daily_life', 'read_academic', 'listen_choose_response', 'listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(q.task_type);
   const showAudio = ['listen_choose_response', 'listen_conversation', 'listen_announcement', 'listen_academic_talk', 'listen_repeat'].includes(q.task_type);
-  const showSpeakerPhoto = ['listen_choose_response', 'listen_conversation', 'listen_announcement', 'listen_academic_talk', 'take_interview'].includes(q.task_type);
-  const showGroupAudio = ['listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(q.task_type);
+  const showSpeakerPhoto = ['listen_choose_response', 'listen_conversation', 'listen_announcement', 'listen_academic_talk', 'listen_repeat', 'take_interview'].includes(q.task_type);
+  const showGroupAudio = ['listen_conversation', 'listen_announcement', 'listen_academic_talk', 'listen_repeat'].includes(q.task_type);
   const showTiles = q.task_type === 'build_sentence';
+  const showWriteEmail = q.task_type === 'write_email';
+  const showWriteDiscussion = q.task_type === 'write_discussion';
+  const showListenRepeatIntro = q.task_type === 'listen_repeat';
   const isGroupIntroTask = ['listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(q.task_type);
   const mainAudioLabelByType = {
     listen_conversation: 'Conversation Audio URL (group shared)',
@@ -831,10 +840,22 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
   const audioPlaceholder = isGroupIntroTask ? (mainAudioPlaceholderByType[q.task_type] || 'Main audio played after directions audio') : 'https://.../audio.mp3';
   const groupAudioLabel = isGroupIntroTask
     ? 'Directions Audio URL (group intro page)'
-    : 'Group Audio URL (shared passage audio)';
+    : q.task_type === 'listen_repeat'
+      ? 'Background Audio URL (group intro page)'
+      : 'Group Audio URL (shared passage audio)';
   const groupAudioPlaceholder = isGroupIntroTask
     ? 'Audio played on the special intro page'
-    : 'Shared audio for all questions in this group';
+    : q.task_type === 'listen_repeat'
+      ? 'Audio for speaking context intro shown once before grouped questions'
+      : 'Shared audio for all questions in this group';
+  const speakerPhotoLabel = q.task_type === 'take_interview'
+    ? 'Interviewer Photo URL'
+    : q.task_type === 'listen_repeat'
+      ? 'Question Image URL'
+      : 'Speaker / Interviewer Photo URL';
+  const speakerPhotoPlaceholder = q.task_type === 'listen_repeat'
+    ? 'https://.../repeat-question-image.jpg'
+    : 'https://.../speaker.jpg';
   const readingPassageIndex = Number.parseInt(q.group_id || '0', 10);
   const readingPassages = parseReadingPassages(sec.reading_passage);
   const readingPassageLabel = sectionType === 'reading' && ['read_daily_life', 'read_academic'].includes(q.task_type)
@@ -989,7 +1010,15 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
 
           <div>
             <label className="label" htmlFor={`prompt-${q._id}`}>
-              {q.task_type === 'listen_repeat' ? 'Sentence to Repeat' : q.task_type === 'c_test' ? 'C-Test Passage Text' : 'Question / Prompt'}
+              {q.task_type === 'listen_repeat'
+                ? 'Sentence to Repeat'
+                : q.task_type === 'c_test'
+                  ? 'C-Test Passage Text'
+                  : q.task_type === 'write_email'
+                    ? 'Write Email Directions'
+                    : q.task_type === 'write_discussion'
+                      ? 'Discussion Task Directions'
+                    : 'Question / Prompt'}
             </label>
             <textarea
               id={`prompt-${q._id}`}
@@ -997,7 +1026,15 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
               rows={q.task_type === 'c_test' ? 6 : 3}
               value={q.prompt}
               onChange={event => onChange('prompt', event.target.value)}
-              placeholder={q.task_type === 'c_test' ? 'Enter passage and use {{brackets}} for blanks. e.g. The quick br{{own}} fox...' : 'Enter question text, passage, or instruction...'}
+              placeholder={
+                q.task_type === 'c_test'
+                  ? 'Enter passage and use {{brackets}} for blanks. e.g. The quick br{{own}} fox...'
+                  : q.task_type === 'write_email'
+                    ? 'Write an email to the editor. In your email, include the following: ...'
+                    : q.task_type === 'write_discussion'
+                      ? 'Write a post responding to the professor. In your response, do the following: ...'
+                    : 'Enter question text, passage, or instruction...'
+              }
             />
             {q.task_type === 'c_test' && (
               <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
@@ -1007,6 +1044,226 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
               </p>
             )}
           </div>
+
+          {showWriteEmail && (
+            <div style={{ backgroundColor: '#f8fafc', padding: 16, borderRadius: 8, border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <label className="label" htmlFor={`email-to-${q._id}`}>Recipient (To)</label>
+                  <input
+                    id={`email-to-${q._id}`}
+                    className="input"
+                    value={(q.options ?? [])[1] ?? ''}
+                    onChange={event => {
+                      const options = [...(q.options ?? ['', '', '', ''])];
+                      options[1] = event.target.value;
+                      onChange('options', options);
+                    }}
+                    placeholder="editor@magazine.com"
+                  />
+                </div>
+                <div>
+                  <label className="label" htmlFor={`email-subject-${q._id}`}>Subject</label>
+                  <input
+                    id={`email-subject-${q._id}`}
+                    className="input"
+                    value={(q.options ?? [])[2] ?? ''}
+                    onChange={event => {
+                      const options = [...(q.options ?? ['', '', '', ''])];
+                      options[2] = event.target.value;
+                      onChange('options', options);
+                    }}
+                    placeholder="Problem using submission form"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="label" htmlFor={`email-context-${q._id}`}>Scenario / Context</label>
+                <textarea
+                  id={`email-context-${q._id}`}
+                  className="input"
+                  rows={4}
+                  value={(q.options ?? [])[0] ?? ''}
+                  onChange={event => {
+                    const options = [...(q.options ?? ['', '', '', ''])];
+                    options[0] = event.target.value;
+                    onChange('options', options);
+                  }}
+                  placeholder="Your school's poetry magazine asked for submissions, but you had a problem with the online form..."
+                />
+              </div>
+            </div>
+          )}
+
+          {showWriteDiscussion && (
+            <div style={{ background: '#f8fafc', border: '1px solid #dbe5ef', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ padding: '10px 14px', background: '#eaf2f9', borderBottom: '1px solid #dbe5ef', fontSize: 12, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: '#1e3a5f' }}>
+                Discussion Thread Setup
+              </div>
+              <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ background: '#fff', border: '1px solid #dbe5ef', borderRadius: 8, padding: 12 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: '#334155', marginBottom: 10 }}>
+                    Professor
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div>
+                      <label className="label" htmlFor={`discussion-prof-name-${q._id}`}>Professor Name</label>
+                      <input
+                        id={`discussion-prof-name-${q._id}`}
+                        className="input"
+                        value={(q.options ?? [])[5] ?? ''}
+                        onChange={event => {
+                          const options = [...(q.options ?? ['', '', '', '', '', ''])];
+                          options[5] = event.target.value;
+                          onChange('options', options);
+                        }}
+                        placeholder="Dr. Achebe"
+                      />
+                    </div>
+                    <div>
+                      <label className="label" htmlFor={`discussion-prof-photo-${q._id}`}>Professor Photo URL</label>
+                      <input
+                        id={`discussion-prof-photo-${q._id}`}
+                        className="input"
+                        value={q.speaker_photo_url || ''}
+                        onChange={event => onChange('speaker_photo_url', event.target.value)}
+                        placeholder="https://example.com/professor.jpg"
+                      />
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 12 }}>
+                    <div>
+                      <label className="label" htmlFor={`discussion-topic-${q._id}`}>Professor Topic / Prompt Text</label>
+                      <textarea
+                        id={`discussion-topic-${q._id}`}
+                        className="input"
+                        rows={4}
+                        value={(q.options ?? [])[0] ?? ''}
+                        onChange={event => {
+                          const options = [...(q.options ?? ['', '', '', '', '', ''])];
+                          options[0] = event.target.value;
+                          onChange('options', options);
+                        }}
+                        placeholder="Volunteerism refers to the act of offering your time and service..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div style={{ background: '#fff', border: '1px solid #dbe5ef', borderRadius: 8, padding: 12 }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: '#334155', marginBottom: 10 }}>
+                      Sample Student A
+                    </div>
+                    <label className="label" htmlFor={`discussion-sample-a-${q._id}`}>Post (Name||Message)</label>
+                    <input
+                      id={`discussion-sample-a-${q._id}`}
+                      className="input"
+                      value={(q.options ?? [])[1] ?? ''}
+                      onChange={event => {
+                        const options = [...(q.options ?? ['', '', '', '', '', ''])];
+                        options[1] = event.target.value;
+                        onChange('options', options);
+                      }}
+                      placeholder="Claire||I think students should complete volunteer hours because..."
+                    />
+                    <div style={{ marginTop: 10 }}>
+                      <label className="label" htmlFor={`discussion-sample-a-photo-${q._id}`}>Photo URL</label>
+                      <input
+                        id={`discussion-sample-a-photo-${q._id}`}
+                        className="input"
+                        value={(q.options ?? [])[3] ?? ''}
+                        onChange={event => {
+                          const options = [...(q.options ?? ['', '', '', '', '', ''])];
+                          options[3] = event.target.value;
+                          onChange('options', options);
+                        }}
+                        placeholder="https://example.com/student-a.jpg"
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#fff', border: '1px solid #dbe5ef', borderRadius: 8, padding: 12 }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: '#334155', marginBottom: 10 }}>
+                      Sample Student B
+                    </div>
+                    <label className="label" htmlFor={`discussion-sample-b-${q._id}`}>Post (Name||Message)</label>
+                    <input
+                      id={`discussion-sample-b-${q._id}`}
+                      className="input"
+                      value={(q.options ?? [])[2] ?? ''}
+                      onChange={event => {
+                        const options = [...(q.options ?? ['', '', '', '', '', ''])];
+                        options[2] = event.target.value;
+                        onChange('options', options);
+                      }}
+                      placeholder="Andrew||I do not think volunteer hours should be required because..."
+                    />
+                    <div style={{ marginTop: 10 }}>
+                      <label className="label" htmlFor={`discussion-sample-b-photo-${q._id}`}>Photo URL</label>
+                      <input
+                        id={`discussion-sample-b-photo-${q._id}`}
+                        className="input"
+                        value={(q.options ?? [])[4] ?? ''}
+                        onChange={event => {
+                          const options = [...(q.options ?? ['', '', '', '', '', ''])];
+                          options[4] = event.target.value;
+                          onChange('options', options);
+                        }}
+                        placeholder="https://example.com/student-b.jpg"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>
+                  Format tip: use <code>Name||Message</code> for each sample student post.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {showListenRepeatIntro && (
+            <div style={{ background: '#f8fafc', border: '1px solid #dbe5ef', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ padding: '10px 14px', background: '#eaf2f9', borderBottom: '1px solid #dbe5ef', fontSize: 12, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: '#1e3a5f' }}>
+                Listen & Repeat Intro (Shown Once Per Group)
+              </div>
+              <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label className="label" htmlFor={`repeat-intro-context-${q._id}`}>Background / Context Text</label>
+                  <textarea
+                    id={`repeat-intro-context-${q._id}`}
+                    className="input"
+                    rows={3}
+                    value={(q.options ?? [])[0] ?? ''}
+                    onChange={event => {
+                      const options = [...(q.options ?? ['', ''])];
+                      options[0] = event.target.value;
+                      onChange('options', options);
+                    }}
+                    placeholder="You are learning how to guide new students through the campus gym..."
+                  />
+                </div>
+                <div>
+                  <label className="label" htmlFor={`repeat-intro-image-${q._id}`}>Intro Image URL</label>
+                  <input
+                    id={`repeat-intro-image-${q._id}`}
+                    className="input"
+                    value={(q.options ?? [])[1] ?? ''}
+                    onChange={event => {
+                      const options = [...(q.options ?? ['', ''])];
+                      options[1] = event.target.value;
+                      onChange('options', options);
+                    }}
+                    placeholder="https://example.com/speaking-context.jpg"
+                  />
+                </div>
+                <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                  Use the same <code>Group ID</code> and <code>Background Audio URL</code> across repeat questions that share one intro page.
+                </p>
+              </div>
+            </div>
+          )}
 
           {showOptions && (
             <div>
@@ -1105,13 +1362,13 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
 
           {showSpeakerPhoto && (
             <div>
-              <label className="label" htmlFor={`photo-${q._id}`}>Speaker / Interviewer Photo URL</label>
+              <label className="label" htmlFor={`photo-${q._id}`}>{speakerPhotoLabel}</label>
               <input
                 id={`photo-${q._id}`}
                 className="input"
                 value={q.speaker_photo_url}
                 onChange={event => onChange('speaker_photo_url', event.target.value)}
-                placeholder="https://.../speaker.jpg"
+                placeholder={speakerPhotoPlaceholder}
               />
             </div>
           )}

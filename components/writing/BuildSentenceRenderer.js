@@ -18,6 +18,7 @@ export default function BuildSentenceRenderer({ prompt, speaker1PhotoUrl, speake
   const dragItem = useRef(null);
   const dragSource = useRef(null); // 'pool' | 'arranged'
   const dragIndex = useRef(null);
+  const slotRefs = useRef([]);
 
   // Parse sentence template and extract correct answers
   const sentenceTemplate = options?.[0] || '';
@@ -62,11 +63,39 @@ export default function BuildSentenceRenderer({ prompt, speaker1PhotoUrl, speake
   // Ensure we have exact number of slots as correct words
   const slots = useMemo(() => {
     const arr = new Array(correctWords.length).fill(null);
-    answer.forEach((word, index) => {
-      if (index < arr.length) arr[index] = word;
-    });
+    for (let i = 0; i < arr.length; i++) {
+      arr[i] = answer?.[i] ?? null;
+    }
     return arr;
   }, [correctWords, answer]);
+
+  function commitSlots(nextSlots) {
+    onAnswer(nextSlots);
+  }
+
+  function applyDropToSlot(dropIndex) {
+    const word = dragItem.current;
+    const source = dragSource.current;
+    if (!word || dropIndex < 0 || dropIndex >= slots.length) return;
+
+    const nextSlots = [...slots];
+
+    if (source === 'pool') {
+      // Place directly into the targeted blank.
+      nextSlots[dropIndex] = word;
+    } else if (source === 'arranged') {
+      const fromIdx = dragIndex.current;
+      if (fromIdx == null || fromIdx < 0 || fromIdx >= slots.length) return;
+      if (fromIdx === dropIndex) return;
+
+      const targetWord = nextSlots[dropIndex];
+      nextSlots[dropIndex] = word;
+      nextSlots[fromIdx] = targetWord ?? null;
+    }
+
+    commitSlots(nextSlots);
+    dragItem.current = null;
+  }
 
   function handleDragStart(word, source, index) {
     dragItem.current = word;
@@ -77,23 +106,35 @@ export default function BuildSentenceRenderer({ prompt, speaker1PhotoUrl, speake
   function handleDropOnSlot(e, dropIndex) {
     e.preventDefault();
     e.stopPropagation();
-    const word = dragItem.current;
-    const source = dragSource.current;
-    if (!word) return;
+    applyDropToSlot(dropIndex);
+  }
 
-    let newAnswer = [...answer];
+  function getNearestSlotIndex(clientX) {
+    let nearest = -1;
+    let minDistance = Infinity;
 
-    if (source === 'pool') {
-      newAnswer.splice(dropIndex, 0, word);
-    } else if (source === 'arranged') {
-      const fromIdx = dragIndex.current;
-      newAnswer.splice(fromIdx, 1);
-      const adjustedDrop = dropIndex > fromIdx ? dropIndex - 1 : dropIndex;
-      newAnswer.splice(adjustedDrop, 0, word);
+    for (let i = 0; i < slotRefs.current.length; i++) {
+      const el = slotRefs.current[i];
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const distance = Math.abs(clientX - centerX);
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearest = i;
+      }
     }
 
-    onAnswer(newAnswer);
-    dragItem.current = null;
+    return nearest;
+  }
+
+  function handleDropOnSlotsRow(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const nearestIndex = getNearestSlotIndex(e.clientX);
+    if (nearestIndex >= 0) {
+      applyDropToSlot(nearestIndex);
+    }
   }
 
   function handleDropOnPool(e) {
@@ -102,9 +143,11 @@ export default function BuildSentenceRenderer({ prompt, speaker1PhotoUrl, speake
     const source = dragSource.current;
     if (source === 'arranged') {
       const fromIdx = dragIndex.current;
-      const newAnswer = [...answer];
-      newAnswer.splice(fromIdx, 1);
-      onAnswer(newAnswer);
+      const nextSlots = [...slots];
+      if (fromIdx != null && fromIdx >= 0 && fromIdx < nextSlots.length) {
+        nextSlots[fromIdx] = null;
+      }
+      commitSlots(nextSlots);
     }
     dragItem.current = null;
   }
@@ -173,7 +216,7 @@ export default function BuildSentenceRenderer({ prompt, speaker1PhotoUrl, speake
             <div 
               style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', flexWrap: 'wrap', marginTop: '10px' }}
               onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
-              onDrop={e => handleDropOnSlot(e, answer.length)}
+              onDrop={handleDropOnSlotsRow}
             >
               {templateParts.map((part, i) => (
                 <React.Fragment key={i}>
@@ -184,6 +227,7 @@ export default function BuildSentenceRenderer({ prompt, speaker1PhotoUrl, speake
                   )}
                   {i < slots.length && (
                     <div 
+                      ref={el => { slotRefs.current[i] = el; }}
                       draggable={!!slots[i]}
                       onDragStart={() => slots[i] && handleDragStart(slots[i], 'arranged', i)}
                       onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
@@ -194,8 +238,9 @@ export default function BuildSentenceRenderer({ prompt, speaker1PhotoUrl, speake
                         paddingBottom: '4px', 
                         textAlign: 'center', 
                         fontSize: '18px', 
+                        lineHeight: '1.2',
                         cursor: slots[i] ? 'grab' : 'default',
-                        height: '32px',
+                        height: '28px',
                         display: 'flex',
                         alignItems: 'flex-end',
                         justifyContent: 'center',
@@ -223,6 +268,7 @@ export default function BuildSentenceRenderer({ prompt, speaker1PhotoUrl, speake
           marginTop: '80px', 
           flexWrap: 'wrap', 
           justifyContent: 'center',
+          alignItems: 'center',
           paddingLeft: speaker2PhotoUrl || speaker1PhotoUrl ? '110px' : '0px', 
           minHeight: '60px' 
         }}
@@ -240,7 +286,7 @@ export default function BuildSentenceRenderer({ prompt, speaker1PhotoUrl, speake
             // We should use an ID for each tile to be perfectly robust.
             // For now, let's keep it simple: count remaining available.
             const totalOfThisWord = initialPool.filter(w => w === word).length;
-            const usedOfThisWord = answer.filter(w => w === word).length;
+            const usedOfThisWord = slots.filter(w => w === word).length;
             
             // This specific tile is available if we haven't used up all instances of it.
             // We need to determine if THIS index is used. 
@@ -258,12 +304,15 @@ export default function BuildSentenceRenderer({ prompt, speaker1PhotoUrl, speake
                 onDragStart={() => !isUsed && handleDragStart(word, 'pool', i)}
                 style={{ 
                    fontSize: '18px', 
+                   lineHeight: '1.2',
                    color: '#000',
                    cursor: isUsed ? 'default' : 'grab', 
                    opacity: isUsed ? 0 : 1, 
                    userSelect: 'none',
                    transition: 'opacity 0.2s ease',
-                   padding: '4px 8px',
+                   display: 'inline-flex',
+                   alignItems: 'center',
+                   padding: '1px 8px',
                    margin: '-4px -8px',
                    backgroundColor: '#e5e7eb',
                    borderRadius: '4px'

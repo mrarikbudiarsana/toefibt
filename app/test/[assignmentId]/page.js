@@ -10,6 +10,7 @@ import ReadAcademicRenderer from '@/components/reading/ReadAcademicRenderer';
 import ListenChooseRenderer from '@/components/listening/ListenChooseRenderer';
 import ListenConversationQuestionRenderer from '@/components/listening/ListenConversationQuestionRenderer';
 import ListenGroupAudioIntro from '@/components/listening/ListenGroupAudioIntro';
+import ListenRepeatIntro from '@/components/speaking/ListenRepeatIntro';
 import BuildSentenceRenderer from '@/components/writing/BuildSentenceRenderer';
 import WriteEmailRenderer from '@/components/writing/WriteEmailRenderer';
 import WriteDiscussionRenderer from '@/components/writing/WriteDiscussionRenderer';
@@ -65,7 +66,7 @@ export default function TestPage() {
 
   //  Test State 
   const [sectionIdx, setSectionIdx] = useState(0);
-  const [screen, setScreen] = useState('intro'); // intro | module_intro | listening_audio_intro | question | module_end | section_end | done
+  const [screen, setScreen] = useState('intro'); // intro | module_intro | listening_audio_intro | speaking_repeat_intro | question | module_end | section_end | done
   const [currentModule, setCurrentModule] = useState('module1'); // module1 | module2_easy | module2_hard
   const [questions, setQuestions] = useState([]); // questions for current module
   const [questionIdx, setQuestionIdx] = useState(0);
@@ -89,6 +90,8 @@ export default function TestPage() {
   const listenChooseTimerRef = useRef(null);
   const [playedConversationGroups, setPlayedConversationGroups] = useState({});
   const [pendingConversationAudio, setPendingConversationAudio] = useState(null);
+  const [playedRepeatIntroGroups, setPlayedRepeatIntroGroups] = useState({});
+  const [pendingRepeatIntro, setPendingRepeatIntro] = useState(null);
 
   const section = SECTION_ORDER[sectionIdx];
   const sectionLabel = SECTION_LABELS[section] ?? '';
@@ -104,6 +107,7 @@ export default function TestPage() {
     .map(question => `${question.id}:${question.task_type || ''}:${question.group_id || ''}:${question.group_audio_url || ''}:${question.audio_url || ''}`)
     .join('|');
   const playedGroupSignature = Object.keys(playedConversationGroups).sort().join('|');
+  const playedRepeatIntroSignature = Object.keys(playedRepeatIntroGroups).sort().join('|');
 
   // Keep all media elements synced with navbar volume state.
   useEffect(() => {
@@ -127,6 +131,32 @@ export default function TestPage() {
     if (!isConversationFlowQuestion(question)) return null;
     const groupToken = question.group_id || question.group_audio_url || question.audio_url || question.id;
     return `${currentModule}:${groupToken}`;
+  }
+
+  function getQuestionOptions(question) {
+    if (!question?.options) return [];
+    if (Array.isArray(question.options)) return question.options;
+    try {
+      const parsed = JSON.parse(question.options);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function getRepeatGroupKey(question) {
+    if (!question || question.task_type !== 'listen_repeat') return null;
+    const groupToken = question.group_id || question.group_audio_url || question.id;
+    return `${currentModule}:${groupToken}`;
+  }
+
+  function getListenRepeatIntroConfig(question) {
+    const options = getQuestionOptions(question);
+    return {
+      contextText: String(options?.[0] || '').trim(),
+      introImageUrl: String(options?.[1] || '').trim(),
+      introAudioUrl: String(question?.group_audio_url || '').trim(),
+    };
   }
 
   function isConversationFlowQuestion(question) {
@@ -221,6 +251,44 @@ export default function TestPage() {
     currentSpeakerPhotoUrl,
     currentModule,
     playedGroupSignature,
+  ]);
+
+  useEffect(() => {
+    const isSpeakingRepeatQuestionScreen =
+      screen === 'question' &&
+      section === 'speaking' &&
+      currentTaskType === 'listen_repeat';
+
+    if (!isSpeakingRepeatQuestionScreen) return;
+
+    const groupKey = getRepeatGroupKey(currentQuestion);
+    if (!groupKey || playedRepeatIntroGroups[groupKey]) return;
+
+    const firstQuestionIndex = questions.findIndex(question => getRepeatGroupKey(question) === groupKey);
+    if (firstQuestionIndex !== questionIdx) return;
+
+    const { contextText, introImageUrl, introAudioUrl } = getListenRepeatIntroConfig(currentQuestion);
+    if (!contextText && !introImageUrl && !introAudioUrl) {
+      setPlayedRepeatIntroGroups(prev => ({ ...prev, [groupKey]: true }));
+      return;
+    }
+
+    setPendingRepeatIntro({
+      groupKey,
+      contextText,
+      introImageUrl,
+      introAudioUrl,
+    });
+    setScreen('speaking_repeat_intro');
+  }, [
+    screen,
+    section,
+    questionIdx,
+    questionsGroupSignature,
+    currentQuestionId,
+    currentTaskType,
+    currentModule,
+    playedRepeatIntroSignature,
   ]);
 
   //  Load test data 
@@ -385,6 +453,15 @@ export default function TestPage() {
       setPlayedConversationGroups(prev => ({ ...prev, [groupKey]: true }));
     }
     setPendingConversationAudio(null);
+    setScreen('question');
+  }
+
+  function finishRepeatIntro() {
+    const groupKey = pendingRepeatIntro?.groupKey;
+    if (groupKey) {
+      setPlayedRepeatIntroGroups(prev => ({ ...prev, [groupKey]: true }));
+    }
+    setPendingRepeatIntro(null);
     setScreen('question');
   }
 
@@ -582,6 +659,7 @@ export default function TestPage() {
       return (
         <WriteEmailRenderer
           prompt={prompt}
+          options={options}
           value={writingAnswers[qId] ?? ''}
           onChange={val => setWritingAnswers(prev => ({ ...prev, [qId]: val }))}
           questionNumber={questionNumber}
@@ -593,6 +671,8 @@ export default function TestPage() {
       return (
         <WriteDiscussionRenderer
           prompt={prompt}
+          options={options}
+          speakerPhotoUrl={speaker_photo_url}
           value={writingAnswers[qId] ?? ''}
           onChange={val => setWritingAnswers(prev => ({ ...prev, [qId]: val }))}
           questionNumber={questionNumber}
@@ -606,6 +686,7 @@ export default function TestPage() {
       return (
         <ListenRepeatRenderer
           audioUrl={audio_url}
+          speakerPhotoUrl={speaker_photo_url}
           prompt={prompt}
           onRecordingReady={blob => setSpeakingBlobs(prev => ({ ...prev, [qId]: blob }))}
         />
@@ -740,6 +821,34 @@ export default function TestPage() {
             contentAudioUrl={pendingConversationAudio?.contentAudioUrl ?? ''}
             speakerPhotoUrl={pendingConversationAudio?.speakerPhotoUrl ?? ''}
             onFinished={finishConversationAudioIntro}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === 'speaking_repeat_intro') {
+    return (
+      <div style={{ minHeight: '100vh' }}>
+        <ToeflNavbar
+          sectionName={sectionLabel}
+          counter=""
+          timeRemaining={timeRemaining}
+          showVolume={true}
+          volume={volume}
+          onVolumeChange={setVolume}
+          showSubbar={true}
+          showBack={false}
+          showNext={false}
+          subbarInfo={`${sectionLabel} - ${currentModule === 'module1' ? 'Module 1' : (mstPaths[section] === 'hard' ? 'Module 2 Advanced' : 'Module 2 Standard')}`}
+        />
+        <div className="test-layout">
+          <ListenRepeatIntro
+            key={pendingRepeatIntro?.groupKey ?? `${questionIdx}`}
+            contextText={pendingRepeatIntro?.contextText ?? ''}
+            introImageUrl={pendingRepeatIntro?.introImageUrl ?? ''}
+            introAudioUrl={pendingRepeatIntro?.introAudioUrl ?? ''}
+            onFinished={finishRepeatIntro}
           />
         </div>
       </div>
