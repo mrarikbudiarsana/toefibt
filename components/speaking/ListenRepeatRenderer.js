@@ -15,24 +15,73 @@ import { useState, useRef, useEffect } from 'react';
  *   maxRecordSeconds: number
  *   onRecordingReady: (blob: Blob) => void
  */
-export default function ListenRepeatRenderer({ audioUrl, speakerPhotoUrl = '', prompt = '', maxRecordSeconds = 15, onRecordingReady }) {
-  const [phase, setPhase] = useState('audio'); // audio | countdown | recording | done
+export default function ListenRepeatRenderer({ audioUrl, speakerPhotoUrl = '', prompt = '', maxRecordSeconds = 15, onRecordingReady, onAutoAdvance }) {
+  const [phase, setPhase] = useState('init'); // init | pre_audio_countdown | audio | countdown | recording | done
   const [countdown, setCountdown] = useState(3);
+  const [preCountdown, setPreCountdown] = useState(3);
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [audioBlob, setAudioBlob] = useState(null);
   const [playbackUrl, setPlaybackUrl] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [doneCountdown, setDoneCountdown] = useState(null);
+  const [imageLoaded, setImageLoaded] = useState(!speakerPhotoUrl);
+
+  // Handle auto-advance countdown when done
+  useEffect(() => {
+    if (phase === 'done') {
+      setDoneCountdown(5);
+      let c = 5;
+      const id = setInterval(() => {
+        c--;
+        setDoneCountdown(c);
+        if (c <= 0) {
+          clearInterval(id);
+          onAutoAdvance?.();
+        }
+      }, 1000);
+      return () => clearInterval(id);
+    }
+  }, [phase, onAutoAdvance]);
 
   const sourceAudioRef = useRef(null);
   const recorderRef = useRef(null);
   const chunksRef = useRef([]);
   const intervalRef = useRef(null);
 
-  // Play source audio on mount
+  // Handle init to pre_audio_countdown transition when image loads
   useEffect(() => {
-    if (!sourceAudioRef.current || !audioUrl) return;
-    sourceAudioRef.current.play().catch(() => setPhase('countdown'));
-  }, [audioUrl]);
+    if (phase === 'init' && imageLoaded) {
+      setPhase('pre_audio_countdown');
+    }
+  }, [phase, imageLoaded]);
+
+  // Handle pre-audio countdown
+  useEffect(() => {
+    if (phase === 'pre_audio_countdown') {
+      setPreCountdown(3);
+      let c = 3;
+      const id = setInterval(() => {
+        c--;
+        setPreCountdown(c);
+        if (c <= 0) {
+          clearInterval(id);
+          setPhase('audio');
+        }
+      }, 1000);
+      return () => clearInterval(id);
+    }
+  }, [phase]);
+
+  // Play source audio when entering 'audio' phase
+  useEffect(() => {
+    if (phase === 'audio') {
+      if (!sourceAudioRef.current || !audioUrl) {
+        setPhase('countdown');
+        return;
+      }
+      sourceAudioRef.current.play().catch(() => setPhase('countdown'));
+    }
+  }, [phase, audioUrl]);
 
   function handleSourceAudioEnd() {
     startCountdown();
@@ -100,16 +149,48 @@ export default function ListenRepeatRenderer({ audioUrl, speakerPhotoUrl = '', p
         style={{ display: 'none' }}
       />
 
+      {/* Render the image once at the top, but hide it until loaded to prevent visual jumping. Also hide in done phase. */}
+      {speakerPhotoUrl && phase !== 'done' ? (
+        <img
+          src={speakerPhotoUrl}
+          alt="Speaking prompt"
+          style={{ width: 460, maxWidth: '100%', height: 260, objectFit: 'contain', marginBottom: 12, display: imageLoaded ? 'block' : 'none' }}
+          onLoad={() => setImageLoaded(true)}
+          onError={() => setImageLoaded(true)}
+        />
+      ) : null}
+
+      {/*  INIT PHASE  */}
+      {phase === 'init' && (
+        <div style={{ padding: 40 }}>
+           <div className="spinner" style={{ width: 40, height: 40, border: '4px solid rgba(13, 115, 119, 0.1)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+        </div>
+      )}
+
+      {/*  PRE-AUDIO COUNTDOWN PHASE  */}
+      {phase === 'pre_audio_countdown' && (
+        <>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--teal)', marginBottom: 8 }}>
+            Get Ready
+          </div>
+          <div style={{
+            width: 80, height: 80, borderRadius: '50%',
+            background: 'var(--teal)', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 36, fontWeight: 800,
+            boxShadow: '0 8px 32px rgba(13,115,119,0.3)',
+            marginBottom: 12
+          }}>
+            {preCountdown}
+          </div>
+          <p style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>Audio starts in</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Please look at the picture.</p>
+        </>
+      )}
+
       {/*  AUDIO PHASE  */}
       {phase === 'audio' && (
         <>
-          {speakerPhotoUrl ? (
-            <img
-              src={speakerPhotoUrl}
-              alt="Speaking prompt"
-              style={{ width: 260, maxWidth: '90%', height: 220, objectFit: 'contain', marginBottom: 6 }}
-            />
-          ) : null}
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--teal)', marginBottom: 8 }}>
             Listen and Repeat
           </div>
@@ -127,57 +208,34 @@ export default function ListenRepeatRenderer({ audioUrl, speakerPhotoUrl = '', p
       {/*  COUNTDOWN PHASE  */}
       {phase === 'countdown' && (
         <>
-          {speakerPhotoUrl ? (
-            <img
-              src={speakerPhotoUrl}
-              alt="Speaking prompt"
-              style={{ width: 240, maxWidth: '90%', height: 200, objectFit: 'contain', marginBottom: 4 }}
-            />
-          ) : null}
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--teal)', marginBottom: 8 }}>
             Get Ready
           </div>
           <div style={{
-            width: 100, height: 100, borderRadius: '50%',
+            width: 80, height: 80, borderRadius: '50%',
             background: 'var(--teal)', color: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 48, fontWeight: 800,
+            fontSize: 36, fontWeight: 800,
             boxShadow: '0 8px 32px rgba(13,115,119,0.3)',
+            marginBottom: 12
           }}>
             {countdown}
           </div>
-          <p style={{ fontWeight: 600, fontSize: 18 }}>Recording starts in</p>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Prepare to repeat what you heard.</p>
+          <p style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>Recording starts in</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Prepare to repeat what you heard.</p>
         </>
       )}
 
       {/*  RECORDING PHASE  */}
       {phase === 'recording' && (
         <>
-          {speakerPhotoUrl ? (
-            <img
-              src={speakerPhotoUrl}
-              alt="Speaking prompt"
-              style={{ width: 220, maxWidth: '90%', height: 180, objectFit: 'contain', marginBottom: 2 }}
-            />
-          ) : null}
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--danger)', marginBottom: 8 }}>
             x Recording
           </div>
           <button className="record-btn recording" onClick={stopRecording} aria-label="Stop recording">
             <div style={{ width: 24, height: 24, background: '#fff', borderRadius: 4 }} />
           </button>
-          <p style={{ fontWeight: 600, fontSize: 16, marginTop: 8 }}>Repeat the sentence now</p>
-          {prompt && (
-            <div style={{
-              background: 'var(--teal-light)', borderRadius: 10,
-              padding: '14px 20px', maxWidth: 480, textAlign: 'center',
-              fontSize: 16, fontWeight: 600, color: 'var(--teal-dark)',
-              border: '1px solid #a7d7d9',
-            }}>
-              &ldquo;{prompt}&rdquo;
-            </div>
-          )}
+          <p style={{ fontWeight: 600, fontSize: 16, marginTop: 12, marginBottom: 12 }}>Repeat the sentence now</p>
           <div style={{ width: 280 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>
               <span>{recordSeconds}s</span>
@@ -197,15 +255,9 @@ export default function ListenRepeatRenderer({ audioUrl, speakerPhotoUrl = '', p
           <div style={{ fontSize: 28, fontWeight: 700 }}>Done</div>
           <p style={{ fontWeight: 700, fontSize: 18 }}>Recording saved</p>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Your response has been recorded.</p>
-          {playbackUrl && (
-            <div style={{ marginTop: 8 }}>
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8, textAlign: 'center' }}>Listen to your recording:</p>
-              <audio controls src={playbackUrl} style={{ borderRadius: 8 }} />
-            </div>
-          )}
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8 }}>
-            Click <strong>Next</strong> to continue.
-          </p>
+          <div style={{ marginTop: 24, fontSize: 16, fontWeight: 600, color: 'var(--teal)' }}>
+            Proceeding to next question in {doneCountdown}s...
+          </div>
         </>
       )}
     </div>

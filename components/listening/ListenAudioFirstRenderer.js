@@ -63,8 +63,10 @@ export default function ListenAudioFirstRenderer({
           }, 0);
         });
     } else {
-      setAudioStatus('ended');
-      setPhase('question');
+      setTimeout(() => {
+        setAudioStatus('ended');
+        setPhase('question');
+      }, 0);
     }
   }, [audioUrl, questionInGroup]);
 

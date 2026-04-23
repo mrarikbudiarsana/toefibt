@@ -928,13 +928,15 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
   const taskTypes = TASK_TYPES[sectionType] ?? [];
   const taskTypeLabel = taskTypes.find(taskType => taskType.value === q.task_type)?.label ?? q.task_type ?? 'No task type';
   const showOptions = ['read_daily_life', 'read_academic', 'listen_choose_response', 'listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(q.task_type);
-  const showAudio = ['listen_choose_response', 'listen_conversation', 'listen_announcement', 'listen_academic_talk', 'listen_repeat'].includes(q.task_type);
+  const showAudio = ['listen_choose_response', 'listen_conversation', 'listen_announcement', 'listen_academic_talk', 'listen_repeat', 'take_interview'].includes(q.task_type);
   const showSpeakerPhoto = ['listen_choose_response', 'listen_conversation', 'listen_announcement', 'listen_academic_talk', 'listen_repeat', 'take_interview'].includes(q.task_type);
-  const showGroupAudio = ['listen_conversation', 'listen_announcement', 'listen_academic_talk', 'listen_repeat'].includes(q.task_type);
+  const showGroupAudio = ['listen_conversation', 'listen_announcement', 'listen_academic_talk', 'listen_repeat', 'take_interview'].includes(q.task_type);
   const showTiles = q.task_type === 'build_sentence';
   const showWriteEmail = q.task_type === 'write_email';
   const showWriteDiscussion = q.task_type === 'write_discussion';
   const showListenRepeatIntro = q.task_type === 'listen_repeat';
+  const showTakeInterviewIntro = q.task_type === 'take_interview';
+  const typeStyle = TASK_TYPE_STYLES[q.task_type] || { bg: 'var(--bg)', color: 'var(--text-muted)' };
   const isGroupIntroTask = ['listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(q.task_type);
   const mainAudioLabelByType = {
     listen_conversation: 'Conversation Audio URL (group shared)',
@@ -947,26 +949,25 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
     listen_academic_talk: 'Academic talk audio played after directions audio',
   };
 
-  const typeStyle = TASK_TYPE_STYLES[q.task_type] || { bg: 'var(--bg)', color: 'var(--text-muted)' };
   const readingPassageIndex = Number.parseInt(q.group_id || '0', 10);
   const readingPassageLabel = sectionType === 'reading' && ['read_daily_life', 'read_academic'].includes(q.task_type)
     ? `Passage ${Number.isNaN(readingPassageIndex) ? 1 : readingPassageIndex + 1}`
     : null;
 
-  const audioLabel = isGroupIntroTask ? (mainAudioLabelByType[q.task_type] || 'Main Audio URL (group shared)') : 'Audio URL (question audio)';
+  const audioLabel = isGroupIntroTask ? (mainAudioLabelByType[q.task_type] || 'Main Audio URL (group shared)') : q.task_type === 'take_interview' ? 'Question Video/Audio URL' : 'Audio URL (question audio)';
   const audioPlaceholder = isGroupIntroTask ? (mainAudioPlaceholderByType[q.task_type] || 'Main audio played after directions audio') : 'https://.../audio.mp3';
   const groupAudioLabel = isGroupIntroTask
     ? 'Directions Audio URL (group intro page)'
-    : q.task_type === 'listen_repeat'
-      ? 'Background Audio URL (group intro page)'
+    : ['listen_repeat', 'take_interview'].includes(q.task_type)
+      ? 'Direction Audio URL (group intro page)'
       : 'Group Audio URL (shared passage audio)';
   const groupAudioPlaceholder = isGroupIntroTask
     ? 'Audio played on the special intro page'
-    : q.task_type === 'listen_repeat'
-      ? 'Audio for speaking context intro shown once before grouped questions'
+    : ['listen_repeat', 'take_interview'].includes(q.task_type)
+      ? 'Audio for speaking context direction shown once before grouped questions'
       : 'Shared audio for all questions in this group';
   const speakerPhotoLabel = q.task_type === 'take_interview'
-    ? 'Interviewer Photo URL'
+    ? 'Question Image/Video Poster URL'
     : q.task_type === 'listen_repeat'
       ? 'Question Image URL'
       : 'Speaker / Interviewer Photo URL';
@@ -1407,6 +1408,48 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
                 </div>
                 <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
                   Use the same <code>Group ID</code> and <code>Background Audio URL</code> across repeat questions that share one intro page.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {showTakeInterviewIntro && (
+            <div style={{ background: '#f8fafc', border: '1px solid #dbe5ef', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ padding: '10px 14px', background: '#eaf2f9', borderBottom: '1px solid #dbe5ef', fontSize: 12, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: '#1e3a5f' }}>
+                Take an Interview Intro (Shown Once Per Group)
+              </div>
+              <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label className="label" htmlFor={`interview-intro-context-${q._id}`}>Direction Context Text</label>
+                  <textarea
+                    id={`interview-intro-context-${q._id}`}
+                    className="input"
+                    rows={3}
+                    value={(q.options ?? [])[0] ?? ''}
+                    onChange={event => {
+                      const options = [...(q.options ?? ['', ''])];
+                      options[0] = event.target.value;
+                      onChange('options', options);
+                    }}
+                    placeholder="You have volunteered for a research study about lifelong learning..."
+                  />
+                </div>
+                <div>
+                  <label className="label" htmlFor={`interview-intro-image-${q._id}`}>Direction Image URL</label>
+                  <input
+                    id={`interview-intro-image-${q._id}`}
+                    className="input"
+                    value={(q.options ?? [])[1] ?? ''}
+                    onChange={event => {
+                      const options = [...(q.options ?? ['', ''])];
+                      options[1] = event.target.value;
+                      onChange('options', options);
+                    }}
+                    placeholder="https://example.com/interviewer.jpg"
+                  />
+                </div>
+                <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                  Use the same <code>Group ID</code> and <code>Direction Audio URL</code> across questions that share this direction page.
                 </p>
               </div>
             </div>

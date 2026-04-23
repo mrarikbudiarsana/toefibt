@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-export default function ListenRepeatIntro({ contextText = '', introAudioUrl = '', introImageUrl = '', onFinished }) {
+export default function TakeInterviewIntro({ contextText = '', introAudioUrl = '', introImageUrl = '', onFinished }) {
   const audioRef = useRef(null);
   const onFinishedRef = useRef(onFinished);
   const hasIntroAudio = String(introAudioUrl || '').trim().length > 0;
@@ -17,10 +17,23 @@ export default function ListenRepeatIntro({ contextText = '', introAudioUrl = ''
     const audio = audioRef.current;
     const url = String(introAudioUrl || '').trim();
     if (!audio || !url) return;
-    audio.src = url;
-    audio.play()
-      .then(() => setStatus('playing'))
-      .catch(() => setStatus('error'));
+    
+    // Start 3s countdown before playing audio
+    setStatus('pre_countdown');
+    setCountdown(3);
+    let c = 3;
+    const id = setInterval(() => {
+      c--;
+      setCountdown(c);
+      if (c <= 0) {
+        clearInterval(id);
+        audio.src = url;
+        audio.play()
+          .then(() => setStatus('playing'))
+          .catch(() => setStatus('error'));
+      }
+    }, 1000);
+    return () => clearInterval(id);
   }, [introAudioUrl]);
 
   useEffect(() => {
@@ -66,21 +79,22 @@ export default function ListenRepeatIntro({ contextText = '', introAudioUrl = ''
 
       <div style={{ width: '100%', maxWidth: 760, border: '2px solid #111', background: '#fff', padding: '18px 16px 20px' }}>
         <div style={{ fontSize: 38, fontWeight: 700, color: '#111', textAlign: 'center', lineHeight: 1.25, marginBottom: 12 }}>
-          {contextText || 'Listen to the speaker and repeat what she says. Repeat only once.'}
+          {contextText || 'The researcher will ask you some questions.'}
         </div>
 
         {introImageUrl ? (
           <img
             src={introImageUrl}
-            alt="Speaking context"
+            alt="Interview context"
             style={{ width: 420, maxWidth: '100%', height: 300, objectFit: 'contain', display: 'block', margin: '0 auto 14px', border: '1px solid #9ca3af' }}
           />
         ) : null}
 
         <div style={{ fontSize: 15, color: '#374151', textAlign: 'center' }}>
-          {status === 'loading' && 'Preparing audio...'}
-          {status === 'playing' && 'Listen carefully.'}
-          {(status === 'ended' || status === 'error') && 'Audio finished. Proceeding to question...'}
+          {status === 'loading' && 'Preparing direction audio...'}
+          {status === 'pre_countdown' && `Audio will play in ${countdown}s...`}
+          {status === 'playing' && 'Listen carefully to the directions.'}
+          {(status === 'ended' || status === 'error') && 'Directions finished. Proceeding to interview...'}
         </div>
 
         {showContinue && (

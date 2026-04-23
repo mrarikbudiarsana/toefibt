@@ -16,6 +16,7 @@ import WriteEmailRenderer from '@/components/writing/WriteEmailRenderer';
 import WriteDiscussionRenderer from '@/components/writing/WriteDiscussionRenderer';
 import ListenRepeatRenderer from '@/components/speaking/ListenRepeatRenderer';
 import TakeInterviewRenderer from '@/components/speaking/TakeInterviewRenderer';
+import TakeInterviewIntro from '@/components/speaking/TakeInterviewIntro';
 import { getReadingMSTPath, getListeningMSTPath, getModuleQuestions, computeRawScore } from '@/lib/mst';
 
 //  Section order per ETS Jan 2026 format 
@@ -92,6 +93,8 @@ export default function TestPage() {
   const [pendingConversationAudio, setPendingConversationAudio] = useState(null);
   const [playedRepeatIntroGroups, setPlayedRepeatIntroGroups] = useState({});
   const [pendingRepeatIntro, setPendingRepeatIntro] = useState(null);
+  const [playedInterviewIntroGroups, setPlayedInterviewIntroGroups] = useState({});
+  const [pendingInterviewIntro, setPendingInterviewIntro] = useState(null);
 
   const section = SECTION_ORDER[sectionIdx];
   const sectionLabel = SECTION_LABELS[section] ?? '';
@@ -108,6 +111,7 @@ export default function TestPage() {
     .join('|');
   const playedGroupSignature = Object.keys(playedConversationGroups).sort().join('|');
   const playedRepeatIntroSignature = Object.keys(playedRepeatIntroGroups).sort().join('|');
+  const playedInterviewIntroSignature = Object.keys(playedInterviewIntroGroups).sort().join('|');
 
   // Keep all media elements synced with navbar volume state.
   useEffect(() => {
@@ -151,6 +155,21 @@ export default function TestPage() {
   }
 
   function getListenRepeatIntroConfig(question) {
+    const options = getQuestionOptions(question);
+    return {
+      contextText: String(options?.[0] || '').trim(),
+      introImageUrl: String(options?.[1] || '').trim(),
+      introAudioUrl: String(question?.group_audio_url || '').trim(),
+    };
+  }
+
+  function getInterviewGroupKey(question) {
+    if (!question || question.task_type !== 'take_interview') return null;
+    const groupToken = question.group_id || question.group_audio_url || question.id;
+    return `${currentModule}:${groupToken}`;
+  }
+
+  function getTakeInterviewIntroConfig(question) {
     const options = getQuestionOptions(question);
     return {
       contextText: String(options?.[0] || '').trim(),
@@ -289,6 +308,44 @@ export default function TestPage() {
     currentTaskType,
     currentModule,
     playedRepeatIntroSignature,
+  ]);
+
+  useEffect(() => {
+    const isSpeakingInterviewQuestionScreen =
+      screen === 'question' &&
+      section === 'speaking' &&
+      currentTaskType === 'take_interview';
+
+    if (!isSpeakingInterviewQuestionScreen) return;
+
+    const groupKey = getInterviewGroupKey(currentQuestion);
+    if (!groupKey || playedInterviewIntroGroups[groupKey]) return;
+
+    const firstQuestionIndex = questions.findIndex(question => getInterviewGroupKey(question) === groupKey);
+    if (firstQuestionIndex !== questionIdx) return;
+
+    const { contextText, introImageUrl, introAudioUrl } = getTakeInterviewIntroConfig(currentQuestion);
+    if (!contextText && !introImageUrl && !introAudioUrl) {
+      setPlayedInterviewIntroGroups(prev => ({ ...prev, [groupKey]: true }));
+      return;
+    }
+
+    setPendingInterviewIntro({
+      groupKey,
+      contextText,
+      introImageUrl,
+      introAudioUrl,
+    });
+    setScreen('speaking_interview_intro');
+  }, [
+    screen,
+    section,
+    questionIdx,
+    questionsGroupSignature,
+    currentQuestionId,
+    currentTaskType,
+    currentModule,
+    playedInterviewIntroSignature,
   ]);
 
   //  Load test data 
@@ -462,6 +519,15 @@ export default function TestPage() {
       setPlayedRepeatIntroGroups(prev => ({ ...prev, [groupKey]: true }));
     }
     setPendingRepeatIntro(null);
+    setScreen('question');
+  }
+
+  function finishInterviewIntro() {
+    const groupKey = pendingInterviewIntro?.groupKey;
+    if (groupKey) {
+      setPlayedInterviewIntroGroups(prev => ({ ...prev, [groupKey]: true }));
+    }
+    setPendingInterviewIntro(null);
     setScreen('question');
   }
 
@@ -689,6 +755,7 @@ export default function TestPage() {
           speakerPhotoUrl={speaker_photo_url}
           prompt={prompt}
           onRecordingReady={blob => setSpeakingBlobs(prev => ({ ...prev, [qId]: blob }))}
+          onAutoAdvance={goNextTimed}
         />
       );
     }
@@ -696,8 +763,10 @@ export default function TestPage() {
       return (
         <TakeInterviewRenderer
           question={prompt}
+          audioUrl={audio_url}
           interviewerPhotoUrl={speaker_photo_url}
           onRecordingReady={blob => setSpeakingBlobs(prev => ({ ...prev, [qId]: blob }))}
+          onAutoAdvance={goNextTimed}
           questionNumber={questionNumber}
           totalQuestions={totalQuestions}
         />
@@ -849,6 +918,34 @@ export default function TestPage() {
             introImageUrl={pendingRepeatIntro?.introImageUrl ?? ''}
             introAudioUrl={pendingRepeatIntro?.introAudioUrl ?? ''}
             onFinished={finishRepeatIntro}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === 'speaking_interview_intro') {
+    return (
+      <div style={{ minHeight: '100vh' }}>
+        <ToeflNavbar
+          sectionName={sectionLabel}
+          counter=""
+          timeRemaining={timeRemaining}
+          showVolume={true}
+          volume={volume}
+          onVolumeChange={setVolume}
+          showSubbar={true}
+          showBack={false}
+          showNext={false}
+          subbarInfo={`${sectionLabel} - ${currentModule === 'module1' ? 'Module 1' : (mstPaths[section] === 'hard' ? 'Module 2 Advanced' : 'Module 2 Standard')}`}
+        />
+        <div className="test-layout">
+          <TakeInterviewIntro
+            key={pendingInterviewIntro?.groupKey ?? `${questionIdx}`}
+            contextText={pendingInterviewIntro?.contextText ?? ''}
+            introImageUrl={pendingInterviewIntro?.introImageUrl ?? ''}
+            introAudioUrl={pendingInterviewIntro?.introAudioUrl ?? ''}
+            onFinished={finishInterviewIntro}
           />
         </div>
       </div>

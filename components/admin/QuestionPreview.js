@@ -7,6 +7,8 @@ import ReadAcademicRenderer from '@/components/reading/ReadAcademicRenderer';
 import BuildSentenceRenderer from '@/components/writing/BuildSentenceRenderer';
 import WriteEmailRenderer from '@/components/writing/WriteEmailRenderer';
 import WriteDiscussionRenderer from '@/components/writing/WriteDiscussionRenderer';
+import ListenRepeatRenderer from '@/components/speaking/ListenRepeatRenderer';
+import ListenRepeatIntro from '@/components/speaking/ListenRepeatIntro';
 import RadioOptionList from '@/components/shared/RadioOptionList';
 
 function parseReadingPassages(value) {
@@ -176,89 +178,37 @@ function ListenConversationMock({ choices = [], speakerPhotoUrl = '', question =
 }
 
 function ListenRepeatFlowMock({ question = {}, options = [] }) {
-  const [phase, setPhase] = useState('intro'); // intro | question
-  const audioRef = useRef(null);
-
   const introText = String(options?.[0] || '').trim();
   const introImageUrl = String(options?.[1] || '').trim();
   const introAudioUrl = String(question.group_audio_url || '').trim();
-  const hasIntroAudio = introAudioUrl.length > 0;
-  const [status, setStatus] = useState(hasIntroAudio ? 'idle' : 'ended'); // idle | playing | ended | error
-  const questionImageUrl = String(question.speaker_photo_url || '').trim();
-  const questionAudioUrl = String(question.audio_url || '').trim();
 
-  useEffect(() => {
-    if (phase !== 'intro') return;
-    if (!introAudioUrl || !audioRef.current) return;
-    audioRef.current.src = introAudioUrl;
-    audioRef.current.play()
-      .then(() => setStatus('playing'))
-      .catch(() => setStatus('error'));
-  }, [phase, introAudioUrl]);
+  const hasIntro = introText || introImageUrl || introAudioUrl;
+  const [phase, setPhase] = useState(hasIntro ? 'intro' : 'question');
 
   if (phase === 'question') {
     return (
-      <PreviewShell title="Speaking Preview" subtitle="Question screen shown after intro context/audio." flush>
-        <div style={{ minHeight: 520, background: '#fff', padding: '24px' }}>
-          <div style={{ maxWidth: 720, margin: '0 auto', textAlign: 'center' }}>
-            {questionImageUrl ? (
-              <img
-                src={questionImageUrl}
-                alt="Question visual"
-                style={{ width: 280, maxWidth: '100%', height: 220, objectFit: 'contain', margin: '0 auto 12px' }}
-              />
-            ) : null}
-            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--teal)', marginBottom: 8 }}>
-              Listen and Repeat
-            </div>
-            <div style={{ fontSize: 16, color: '#111', fontWeight: 600, marginBottom: 8 }}>
-              This question uses its own audio and image.
-            </div>
-            <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 14 }}>
-              {question.prompt || 'Student listens to this sentence and repeats it once.'}
-            </div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#f8fafc', border: '1px solid var(--border-light)', borderRadius: 8, fontSize: 13, color: '#334155' }}>
-              <strong>Question Audio:</strong> {questionAudioUrl ? 'Configured' : 'Missing'}
-            </div>
-          </div>
+      <PreviewShell subtitle="Student-facing speaking preview" flush>
+        <div style={{ height: 760, overflow: 'auto', position: 'relative' }}>
+          <ListenRepeatRenderer
+            audioUrl={question.audio_url}
+            speakerPhotoUrl={question.speaker_photo_url}
+            prompt={question.prompt}
+            onRecordingReady={() => {}}
+          />
         </div>
       </PreviewShell>
     );
   }
 
   return (
-    <PreviewShell title="Speaking Preview" subtitle="Intro context/audio shown once before grouped Listen & Repeat items." flush>
-      <div style={{ minHeight: 520, background: '#ececec', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-        <audio
-          ref={audioRef}
-          preload="auto"
-          onEnded={() => setStatus('ended')}
-          onError={() => setStatus('error')}
-          style={{ display: 'none' }}
+    <PreviewShell subtitle="Student-facing intro context preview" flush>
+      <div style={{ height: 760, overflow: 'auto', position: 'relative' }}>
+        <ListenRepeatIntro
+          contextText={introText}
+          introImageUrl={introImageUrl}
+          introAudioUrl={introAudioUrl}
+          onFinished={() => setPhase('question')}
         />
-        <div style={{ width: '100%', maxWidth: 760, border: '2px solid #111', background: '#fff', padding: '18px 16px 20px' }}>
-          <div style={{ fontSize: 30, fontWeight: 700, color: '#111', textAlign: 'center', lineHeight: 1.25, marginBottom: 12 }}>
-            {introText || 'Listen to the speaker and repeat what she says. Repeat only once.'}
-          </div>
-          {introImageUrl ? (
-            <img
-              src={introImageUrl}
-              alt="Intro visual"
-              style={{ width: 420, maxWidth: '100%', height: 280, objectFit: 'contain', display: 'block', margin: '0 auto 12px', border: '1px solid #9ca3af' }}
-            />
-          ) : null}
-          <div style={{ textAlign: 'center', fontSize: 14, color: '#4b5563' }}>
-            {status === 'playing' && 'Playing intro audio...'}
-            {status === 'ended' && 'Intro finished.'}
-            {status === 'error' && 'Intro audio failed to play.'}
-            {status === 'idle' && 'Ready to preview intro.'}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
-            <button className="btn btn--primary btn--sm" onClick={() => setPhase('question')}>
-              Continue to Question Preview
-            </button>
-          </div>
-        </div>
       </div>
     </PreviewShell>
   );
