@@ -41,8 +41,8 @@ export default function ListenChooseRenderer({ audioUrl, speakerPhotoUrl, option
         </div>
 
         {speakerPhotoUrl ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 1.2fr', gap: 60, alignItems: 'center' }}>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '320px minmax(0, 1fr)', gap: 40, alignItems: 'start' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 4 }}>
               <img
                 src={speakerPhotoUrl}
                 alt="Speaker"
@@ -50,7 +50,7 @@ export default function ListenChooseRenderer({ audioUrl, speakerPhotoUrl, option
               />
             </div>
 
-            <div style={{ width: '100%', paddingTop: 10 }}>
+            <div style={{ width: '100%' }}>
               <RadioOptionList
                 options={choices}
                 selected={selected}
