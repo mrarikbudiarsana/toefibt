@@ -449,7 +449,7 @@ export default function ReadDailyLifeRenderer({ passage = '', question, options 
               </span>
             </div>
 
-            <p style={{ fontSize: 18, fontWeight: 600, color: '#111', marginBottom: 40, lineHeight: 1.55 }}>
+            <p style={{ fontSize: 18, fontWeight: 600, color: '#111', marginBottom: 40, lineHeight: 1.55, whiteSpace: 'pre-line' }}>
               <HighlightedText text={question ?? 'What is the main purpose of this text?'} />
             </p>
 

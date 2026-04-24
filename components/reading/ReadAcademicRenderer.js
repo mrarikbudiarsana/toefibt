@@ -71,7 +71,7 @@ export default function ReadAcademicRenderer({ passage = '', question, options =
             </span>
           </div>
 
-          <p style={{ fontSize: 18, fontWeight: 600, color: '#111', marginBottom: 36, lineHeight: 1.5 }}>
+          <p style={{ fontSize: 18, fontWeight: 600, color: '#111', marginBottom: 36, lineHeight: 1.5, whiteSpace: 'pre-line' }}>
             <HighlightedText text={question ?? 'According to the passage, what is the main idea?'} />
           </p>
 
