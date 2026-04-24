@@ -32,21 +32,28 @@ export default function ListenChooseRenderer({ audioUrl, speakerPhotoUrl, option
   }, [audioUrl]);
 
   return (
-    <div style={{ minHeight: 'calc(100vh - var(--navbar-height) - var(--subbar-height))', background: '#ffffff', padding: '40px 24px' }}>
+    <div style={{ 
+      minHeight: 'calc(100vh - var(--navbar-height) - var(--subbar-height))', 
+      background: '#ffffff', 
+      padding: '40px 24px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
       <audio ref={audioRef} onEnded={onAudioEnd} preload="auto" style={{ display: 'none' }} />
 
-      <div style={{ width: '100%', maxWidth: 1040, margin: '0 auto' }}>
+      <div style={{ width: '100%', maxWidth: 1040 }}>
         <div style={{ textAlign: 'center', fontSize: 18, fontWeight: 700, color: '#000', marginBottom: 40, letterSpacing: '-0.01em' }}>
           Choose the best response.
         </div>
 
         {speakerPhotoUrl ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '320px minmax(0, 1fr)', gap: 40, alignItems: 'start' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 4 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '320px minmax(0, 1fr)', gap: 40, alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
               <img
                 src={speakerPhotoUrl}
                 alt="Speaker"
-                style={{ width: 300, maxWidth: '100%', height: 420, objectFit: 'contain', objectPosition: 'center top' }}
+                style={{ width: 300, maxWidth: '100%', height: 'auto', maxHeight: 420, objectFit: 'contain' }}
               />
             </div>
 

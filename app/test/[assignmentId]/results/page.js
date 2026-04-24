@@ -2,10 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import {
-  getReadingBand, getListeningBand, getWritingBand, getSpeakingBand,
-  getOverallBand, getCEFR, getBand120Range
-} from '@/lib/scoring';
+import { getCEFR, getBand120Range } from '@/lib/scoring';
 
 const SECTION_ICONS = { reading: 'R', listening: 'L', writing: 'W', speaking: 'S' };
 const SECTION_LABELS = { reading: 'Reading', listening: 'Listening', writing: 'Writing', speaking: 'Speaking' };
@@ -55,7 +52,8 @@ export default function ResultsPage() {
   const wBand = bands.writing ?? null;
   const sBand = bands.speaking ?? null;
   const allBands = [rBand, lBand, wBand, sBand].filter(b => b != null);
-  const overallBand = allBands.length > 0
+  const hasFullScore = submission.status === 'graded' && [rBand, lBand, wBand, sBand].every(b => b != null);
+  const overallBand = hasFullScore
     ? (allBands.reduce((a, b) => a + b, 0) / allBands.length).toFixed(1)
     : null;
   const overallCEFR = overallBand ? getCEFR(Math.round(parseFloat(overallBand))) : null;
@@ -86,6 +84,25 @@ export default function ResultsPage() {
           </p>
         </div>
 
+        {submission.status !== 'graded' && (
+          <div
+            className="card"
+            style={{
+              marginBottom: 24,
+              border: '1px solid rgba(13, 115, 119, 0.28)',
+              background: '#ecfeff',
+              color: '#0f172a',
+            }}
+          >
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--teal)', marginBottom: 6 }}>
+              Unofficial Scores Available
+            </div>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65, color: 'var(--text-secondary)' }}>
+              Your unofficial Reading and Listening scores are shown below. Your full score report, including Writing and Speaking, will be available in three days. Please monitor your dashboard for the released scores.
+            </p>
+          </div>
+        )}
+
         {/* Overall score */}
         {overallBand && (
           <div className="score-overall">
@@ -107,6 +124,7 @@ export default function ResultsPage() {
             const cefr = getCEFR(band);
             const rawData = raw[sec];
             const aiData = ai[sec];
+            const isUnofficial = submission.status !== 'graded' && (sec === 'reading' || sec === 'listening');
 
             return (
               <div key={sec} className="score-card">
@@ -114,7 +132,9 @@ export default function ResultsPage() {
                   {SECTION_ICONS[sec]} {SECTION_LABELS[sec]}
                 </div>
                 <div className="score-card__band">{band}</div>
-                <div className="score-card__cefr">CEFR {cefr}</div>
+                <div className="score-card__cefr">
+                  CEFR {cefr}{isUnofficial ? ' - Unofficial' : ''}
+                </div>
                 {rawData && (
                   <div className="score-card__raw">
                     Raw score: {rawData.raw} / {rawData.total}

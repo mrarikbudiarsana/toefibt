@@ -546,9 +546,16 @@ export default function EditTestPage() {
             }}
           >
             {item.section_type.charAt(0).toUpperCase() + item.section_type.slice(1)}
-            <span style={{ marginLeft: 6, fontSize: 11, background: 'var(--bg)', padding: '2px 6px', borderRadius: 100 }}>
-              {item.questions.length}
-            </span>
+            <div style={{ display: 'flex', gap: 4, marginLeft: 8 }}>
+              <span style={{ fontSize: 10, background: 'rgba(16, 185, 129, 0.1)', color: '#059669', padding: '2px 6px', borderRadius: 6, fontWeight: 700 }}>
+                {item.questions.filter(q => q.is_scored).length}S
+              </span>
+              {item.questions.some(q => !q.is_scored) && (
+                <span style={{ fontSize: 10, background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', padding: '2px 6px', borderRadius: 6, fontWeight: 700 }}>
+                  {item.questions.filter(q => !q.is_scored).length}U
+                </span>
+              )}
+            </div>
           </button>
         ))}
       </div>
@@ -621,9 +628,16 @@ export default function EditTestPage() {
                       }}
                     >
                       <span>{group.title}</span>
-                      <span style={{ fontSize: 12, padding: '3px 8px', borderRadius: 999, background: isActive ? '#fff' : 'var(--bg)', color: 'inherit' }}>
-                        {count}
-                      </span>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: isActive ? '#fff' : 'rgba(16, 185, 129, 0.1)', color: isActive ? group.accent : '#059669', fontWeight: 800 }}>
+                          {readingQuestionEntries.filter(({ question }) => question.module === group.value && question.is_scored).length}S
+                        </span>
+                        {readingQuestionEntries.some(({ question }) => question.module === group.value && !question.is_scored) && (
+                          <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: isActive ? '#fff' : 'rgba(245, 158, 11, 0.1)', color: isActive ? group.accent : '#d97706', fontWeight: 800 }}>
+                            {readingQuestionEntries.filter(({ question }) => question.module === group.value && !question.is_scored).length}U
+                          </span>
+                        )}
+                      </div>
                     </button>
                   );
                 })}
@@ -840,9 +854,16 @@ export default function EditTestPage() {
                     }}
                   >
                     <span>{group.title}</span>
-                    <span style={{ fontSize: 12, padding: '3px 8px', borderRadius: 999, background: isActive ? '#fff' : 'var(--bg)', color: 'inherit' }}>
-                      {count}
-                    </span>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: isActive ? '#fff' : 'rgba(16, 185, 129, 0.1)', color: isActive ? group.accent : '#059669', fontWeight: 800 }}>
+                        {listeningQuestionEntries.filter(({ question }) => question.module === group.value && question.is_scored).length}S
+                      </span>
+                      {listeningQuestionEntries.some(({ question }) => question.module === group.value && !question.is_scored) && (
+                        <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: isActive ? '#fff' : 'rgba(245, 158, 11, 0.1)', color: isActive ? group.accent : '#d97706', fontWeight: 800 }}>
+                          {listeningQuestionEntries.filter(({ question }) => question.module === group.value && !question.is_scored).length}U
+                        </span>
+                      )}
+                    </div>
                   </button>
                 );
               })}

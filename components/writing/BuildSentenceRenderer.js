@@ -14,6 +14,18 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
  *   answer: string[]       current ordered answer (array of words)
  *   onAnswer: (orderedTiles: string[]) => void
  */
+function lowerInitial(value) {
+  const text = String(value ?? '');
+  if (!text) return text;
+  return `${text.charAt(0).toLowerCase()}${text.slice(1)}`;
+}
+
+function upperInitial(value) {
+  const text = String(value ?? '');
+  if (!text) return text;
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+}
+
 export default function BuildSentenceRenderer({ prompt, speaker1PhotoUrl, speaker2PhotoUrl, options = [], answer = [], onAnswer, title }) {
   const dragItem = useRef(null);
   const dragSource = useRef(null); // 'pool' | 'arranged'
@@ -152,6 +164,16 @@ export default function BuildSentenceRenderer({ prompt, speaker1PhotoUrl, speake
     dragItem.current = null;
   }
 
+  function getTileLabel(word) {
+    return correctWords[0] === word ? lowerInitial(word) : word;
+  }
+
+  function getSlotLabel(word, slotIndex) {
+    if (!word) return '';
+    if (slotIndex === 0) return upperInitial(lowerInitial(word));
+    return getTileLabel(word);
+  }
+
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '60px 40px', fontFamily: 'var(--font-sans), sans-serif' }}>
       
@@ -249,7 +271,7 @@ export default function BuildSentenceRenderer({ prompt, speaker1PhotoUrl, speake
                         borderRadius: slots[i] ? '4px' : '0'
                       }}
                     >
-                      {slots[i] || ''}
+                      {getSlotLabel(slots[i], i)}
                     </div>
                   )}
                 </React.Fragment>
@@ -318,7 +340,7 @@ export default function BuildSentenceRenderer({ prompt, speaker1PhotoUrl, speake
                    borderRadius: '4px'
                 }}
               >
-                {word}
+                {getTileLabel(word)}
               </div>
             );
          })}

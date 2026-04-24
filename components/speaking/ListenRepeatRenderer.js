@@ -25,6 +25,11 @@ export default function ListenRepeatRenderer({ audioUrl, speakerPhotoUrl = '', p
   const [isPlaying, setIsPlaying] = useState(false);
   const [doneCountdown, setDoneCountdown] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(!speakerPhotoUrl);
+  const onAutoAdvanceRef = useRef(onAutoAdvance);
+
+  useEffect(() => {
+    onAutoAdvanceRef.current = onAutoAdvance;
+  }, [onAutoAdvance]);
 
   // Handle auto-advance countdown when done
   useEffect(() => {
@@ -36,12 +41,12 @@ export default function ListenRepeatRenderer({ audioUrl, speakerPhotoUrl = '', p
         setDoneCountdown(c);
         if (c <= 0) {
           clearInterval(id);
-          onAutoAdvance?.();
+          onAutoAdvanceRef.current?.();
         }
       }, 1000);
       return () => clearInterval(id);
     }
-  }, [phase, onAutoAdvance]);
+  }, [phase]);
 
   const sourceAudioRef = useRef(null);
   const recorderRef = useRef(null);

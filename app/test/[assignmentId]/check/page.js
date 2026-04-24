@@ -264,22 +264,7 @@ export default function HardwareCheckPage() {
         position: 'sticky',
         top: 0
       }}>
-        <div style={{
-          width: 38,
-          height: 38,
-          borderRadius: 10,
-          background: 'linear-gradient(135deg, var(--teal), var(--teal-dark))',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#fff',
-          fontSize: 10,
-          fontWeight: 800,
-          letterSpacing: '0.05em',
-          boxShadow: '0 4px 12px rgba(13,115,119,0.3)'
-        }}>
-          TOEFL
-        </div>
+
         <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--teal-dark)', letterSpacing: '-0.02em' }}>
           TOEFL iBT &middot; <span style={{ opacity: 0.7 }}>Equipment Check</span>
         </span>

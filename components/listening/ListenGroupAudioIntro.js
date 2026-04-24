@@ -52,7 +52,7 @@ export default function ListenGroupAudioIntro({ directionsAudioUrl, contentAudio
     <div
       style={{
         minHeight: 'calc(100vh - var(--navbar-height) - var(--subbar-height))',
-        background: '#ececec',
+        background: '#ffffff',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

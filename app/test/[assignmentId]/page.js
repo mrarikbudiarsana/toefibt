@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import ToeflNavbar from '@/components/ToeflNavbar';
@@ -18,6 +18,7 @@ import ListenRepeatRenderer from '@/components/speaking/ListenRepeatRenderer';
 import TakeInterviewRenderer from '@/components/speaking/TakeInterviewRenderer';
 import TakeInterviewIntro from '@/components/speaking/TakeInterviewIntro';
 import { getReadingMSTPath, getListeningMSTPath, getModuleQuestions, computeRawScore } from '@/lib/mst';
+import { getReadingBand, getListeningBand, getCEFR } from '@/lib/scoring';
 
 //  Section order per ETS Jan 2026 format 
 const SECTION_ORDER = ['reading', 'listening', 'writing', 'speaking'];
@@ -26,6 +27,12 @@ const SECTION_LABELS = { reading: 'Reading', listening: 'Listening', writing: 'W
 //  Screen states 
 // intro   module_intro   question   module_end   section_end
 const TIMER_DEFAULTS = { reading: 36 * 60, listening: 36 * 60, writing: 29 * 60, speaking: 16 * 60 };
+const WRITING_TASK_SECONDS = {
+  build_sentence: 8 * 60,
+  write_email: 7 * 60,
+  write_discussion: 10 * 60,
+  academic_discussion: 10 * 60,
+};
 
 function toPassageText(passage) {
   if (typeof passage === 'string') return passage;
@@ -76,6 +83,10 @@ export default function TestPage() {
   const [speakingBlobs, setSpeakingBlobs] = useState({});
   const [mstPaths, setMstPaths] = useState({}); // {reading: 'hard', listening: 'easy'}
   const [module1Answers, setModule1Answers] = useState({});
+  const answersRef = useRef({});
+  const writingAnswersRef = useRef({});
+  const speakingBlobsRef = useRef({});
+  const mstPathsRef = useRef({});
 
   //  Timer 
   const [timeRemaining, setTimeRemaining] = useState(null);
@@ -86,6 +97,7 @@ export default function TestPage() {
   const [mustAnswerModal, setMustAnswerModal] = useState(false);
   const [audioEnded, setAudioEnded] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState('');
   const [volume, setVolume] = useState(1);
   const [listenChooseCountdown, setListenChooseCountdown] = useState(null);
   const listenChooseTimerRef = useRef(null);
@@ -95,6 +107,8 @@ export default function TestPage() {
   const [pendingRepeatIntro, setPendingRepeatIntro] = useState(null);
   const [playedInterviewIntroGroups, setPlayedInterviewIntroGroups] = useState({});
   const [pendingInterviewIntro, setPendingInterviewIntro] = useState(null);
+  const [writingCountdown, setWritingCountdown] = useState(null);
+  const writingTimerRef = useRef(null);
 
   const section = SECTION_ORDER[sectionIdx];
   const sectionLabel = SECTION_LABELS[section] ?? '';
@@ -112,6 +126,85 @@ export default function TestPage() {
   const playedGroupSignature = Object.keys(playedConversationGroups).sort().join('|');
   const playedRepeatIntroSignature = Object.keys(playedRepeatIntroGroups).sort().join('|');
   const playedInterviewIntroSignature = Object.keys(playedInterviewIntroGroups).sort().join('|');
+  const [writingTaskTimerKey, setWritingTaskTimerKey] = useState(null);
+  const draftStorageKey = assignmentId ? `toefl-test-draft:${assignmentId}` : null;
+
+  useEffect(() => {
+    if (!draftStorageKey || typeof window === 'undefined') return;
+
+    try {
+      const rawDraft = window.localStorage.getItem(draftStorageKey);
+      if (!rawDraft) return;
+      const draft = JSON.parse(rawDraft);
+      if (draft.answers && typeof draft.answers === 'object') {
+        answersRef.current = draft.answers;
+        setAnswers(draft.answers);
+      }
+      if (draft.writingAnswers && typeof draft.writingAnswers === 'object') {
+        writingAnswersRef.current = draft.writingAnswers;
+        setWritingAnswers(draft.writingAnswers);
+      }
+      if (draft.mstPaths && typeof draft.mstPaths === 'object') {
+        mstPathsRef.current = draft.mstPaths;
+        setMstPaths(draft.mstPaths);
+      }
+    } catch (err) {
+      console.warn('Unable to restore local test draft:', err);
+    }
+  }, [draftStorageKey]);
+
+  function persistDraft(next = {}) {
+    if (!draftStorageKey || typeof window === 'undefined') return;
+
+    const draft = {
+      answers: next.answers ?? answersRef.current,
+      writingAnswers: next.writingAnswers ?? writingAnswersRef.current,
+      mstPaths: next.mstPaths ?? mstPathsRef.current,
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
+    } catch (err) {
+      console.warn('Unable to save local test draft:', err);
+    }
+  }
+
+  function clearDraft() {
+    if (!draftStorageKey || typeof window === 'undefined') return;
+    try {
+      window.localStorage.removeItem(draftStorageKey);
+    } catch (err) {
+      console.warn('Unable to clear local test draft:', err);
+    }
+  }
+
+  function saveAnswerValue(answerKey, value) {
+    const nextAnswers = { ...answersRef.current, [answerKey]: value };
+    answersRef.current = nextAnswers;
+    setAnswers(nextAnswers);
+    persistDraft({ answers: nextAnswers });
+  }
+
+  function saveWritingValue(questionId, value) {
+    const nextWritingAnswers = { ...writingAnswersRef.current, [questionId]: value };
+    writingAnswersRef.current = nextWritingAnswers;
+    setWritingAnswers(nextWritingAnswers);
+    persistDraft({ writingAnswers: nextWritingAnswers });
+  }
+
+  function saveSpeakingBlob(questionId, blob) {
+    const nextSpeakingBlobs = { ...speakingBlobsRef.current, [questionId]: blob };
+    speakingBlobsRef.current = nextSpeakingBlobs;
+    setSpeakingBlobs(nextSpeakingBlobs);
+  }
+
+  function saveMstPath(sectionName, path) {
+    const nextMstPaths = { ...mstPathsRef.current, [sectionName]: path };
+    mstPathsRef.current = nextMstPaths;
+    setMstPaths(nextMstPaths);
+    persistDraft({ mstPaths: nextMstPaths });
+  }
 
   // Keep all media elements synced with navbar volume state.
   useEffect(() => {
@@ -128,6 +221,13 @@ export default function TestPage() {
     if (listenChooseTimerRef.current) {
       clearInterval(listenChooseTimerRef.current);
       listenChooseTimerRef.current = null;
+    }
+  }
+
+  function clearWritingTimer() {
+    if (writingTimerRef.current) {
+      clearInterval(writingTimerRef.current);
+      writingTimerRef.current = null;
     }
   }
 
@@ -185,6 +285,30 @@ export default function TestPage() {
     return question.task_type === 'listen_choose_response' && Boolean(String(question.group_audio_url || '').trim());
   }
 
+  function getWritingTaskKey(question) {
+    if (!question || section !== 'writing') return null;
+    if (question.task_type === 'build_sentence') return `${currentModule}:build_sentence`;
+    if (WRITING_TASK_SECONDS[question.task_type]) return `${currentModule}:${question.id}`;
+    return null;
+  }
+
+  function advanceWritingTaskTimed(expiredTaskType) {
+    if (expiredTaskType === 'build_sentence') {
+      const nextIndex = questions.findIndex((question, index) => (
+        index > questionIdx && question.task_type !== 'build_sentence'
+      ));
+
+      if (nextIndex >= 0) {
+        setQuestionIdx(nextIndex);
+      } else {
+        handleModuleEnd();
+      }
+      return;
+    }
+
+    goNextTimed();
+  }
+
   useEffect(() => {
     clearListenChooseTimer();
 
@@ -235,6 +359,50 @@ export default function TestPage() {
 
     return () => clearListenChooseTimer();
   }, [screen, section, currentQuestionId, currentTaskType, currentGroupAudioUrl, currentListenChooseAudioEnded]);
+
+  useEffect(() => {
+    const isWritingSection = screen === 'question' && section === 'writing';
+    if (!isWritingSection) {
+      clearWritingTimer();
+      setWritingCountdown(null);
+      setWritingTaskTimerKey(null);
+      return;
+    }
+
+    const taskKey = getWritingTaskKey(currentQuestion);
+    const seconds = WRITING_TASK_SECONDS[currentTaskType];
+    if (!taskKey || !seconds) {
+      clearWritingTimer();
+      setWritingCountdown(null);
+      setWritingTaskTimerKey(null);
+      return;
+    }
+
+    if (writingTaskTimerKey === taskKey && writingTimerRef.current) {
+      return;
+    }
+
+    clearWritingTimer();
+    setWritingCountdown(seconds);
+    setWritingTaskTimerKey(taskKey);
+
+    writingTimerRef.current = setInterval(() => {
+      setWritingCountdown(prev => {
+        if (prev == null) return null;
+        if (prev <= 1) {
+          const expiredTaskType = currentTaskType;
+          clearWritingTimer();
+          setTimeout(() => {
+            advanceWritingTaskTimed(expiredTaskType);
+          }, 0);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {};
+  }, [screen, section, currentQuestionId, currentTaskType, currentModule, writingTaskTimerKey]);
 
   useEffect(() => {
     const isListeningQuestionScreen =
@@ -436,11 +604,10 @@ export default function TestPage() {
   function goNext() {
     clearListenChooseTimer();
     const isListening = section === 'listening';
-    const isWritingOrSpeaking = section === 'writing' || section === 'speaking';
 
     // Must Answer enforcement for Listening
-    if (isListening && !answers[currentQuestion?.id]) {
-      if (!answers[currentQuestion?.id]) {
+    if (isListening && !answersRef.current[currentQuestion?.id]) {
+      if (!answersRef.current[currentQuestion?.id]) {
         setMustAnswerModal(true);
         return;
       }
@@ -476,18 +643,18 @@ export default function TestPage() {
 
     if (currentModule === 'module1' && hasMST) {
       // Save module 1 answers for scoring
-      setModule1Answers(prev => ({ ...prev, [section]: { ...answers } }));
+      setModule1Answers(prev => ({ ...prev, [section]: { ...answersRef.current } }));
 
       // Determine MST path
       let path;
       const threshold = sec.module1_threshold ?? (section === 'reading' ? 13 : undefined);
       if (section === 'reading') {
-        path = getReadingMSTPath(questions, answers, threshold);
+        path = getReadingMSTPath(questions, answersRef.current, threshold);
       } else {
-        path = getListeningMSTPath(questions, answers);
+        path = getListeningMSTPath(questions, answersRef.current);
       }
 
-      setMstPaths(prev => ({ ...prev, [section]: path }));
+      saveMstPath(section, path);
       setScreen('module_end');
     } else {
       setScreen('section_end');
@@ -544,38 +711,133 @@ export default function TestPage() {
     }
   }
 
+  function getScoredSectionQuestions(secName) {
+    const sec = getSectionData(secName);
+    const sectionQuestions = sec?.test_questions ?? [];
+    if (!sec?.has_mst) {
+      return [...sectionQuestions].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+    }
+
+    const module2 = mstPathsRef.current[secName] === 'hard' ? 'module2_hard' : 'module2_easy';
+    return [
+      ...getModuleQuestions(sectionQuestions, 'module1'),
+      ...getModuleQuestions(sectionQuestions, module2),
+    ];
+  }
+
+  function getImmediateReadingListeningScores() {
+    const readingRaw = computeRawScore(getScoredSectionQuestions('reading'), answersRef.current);
+    const listeningRaw = computeRawScore(getScoredSectionQuestions('listening'), answersRef.current);
+    const readingBand = getReadingBand(readingRaw.raw);
+    const listeningBand = getListeningBand(listeningRaw.raw, listeningRaw.total);
+
+    return {
+      raw_scores: {
+        reading: readingRaw,
+        listening: listeningRaw,
+      },
+      band_scores: {
+        reading: readingBand,
+        listening: listeningBand,
+      },
+      cefr_levels: {
+        reading: getCEFR(readingBand),
+        listening: getCEFR(listeningBand),
+      },
+    };
+  }
+
   //  Submit 
   async function handleSubmit() {
+    if (submitting) return;
     setSubmitting(true);
+    setSubmissionError('');
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) throw new Error('You are not signed in. Please sign in again, then retry submission.');
+
+      const finalAnswers = { ...answersRef.current };
+      const finalWritingAnswers = { ...writingAnswersRef.current };
+      const finalSpeakingBlobs = { ...speakingBlobsRef.current };
+      const finalMstPaths = { ...mstPathsRef.current };
 
       // Upload speaking blobs to storage
       const speakingUrls = {};
-      for (const [qId, blob] of Object.entries(speakingBlobs)) {
+      for (const [qId, blob] of Object.entries(finalSpeakingBlobs)) {
         const path = `speaking/${assignmentId}/${qId}.webm`;
-        await supabase.storage.from('recordings').upload(path, blob, { upsert: true });
+        const { error: uploadError } = await supabase.storage.from('recordings').upload(path, blob, { upsert: true });
+        if (uploadError) throw uploadError;
         const { data: { publicUrl } } = supabase.storage.from('recordings').getPublicUrl(path);
         speakingUrls[qId] = publicUrl;
       }
 
+      const immediateScores = getImmediateReadingListeningScores();
+
       const payload = {
         assignment_id: assignmentId,
         student_id: user.id,
-        answers_json: answers,
-        writing_responses: writingAnswers,
+        answers_json: finalAnswers,
+        writing_responses: finalWritingAnswers,
         speaking_recording_urls: speakingUrls,
-        mst_path: mstPaths,
+        raw_scores: immediateScores.raw_scores,
+        band_scores: immediateScores.band_scores,
+        cefr_levels: immediateScores.cefr_levels,
+        mst_path: finalMstPaths,
         status: 'submitted',
         submitted_at: new Date().toISOString(),
       };
 
-      const { error: e } = await supabase.from('test_submissions').insert(payload);
-      if (e) throw e;
+      const { data: existingSubmission, error: lookupError } = await supabase
+        .from('test_submissions')
+        .select('id')
+        .eq('assignment_id', assignmentId)
+        .eq('student_id', user.id)
+        .order('submitted_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (lookupError) throw lookupError;
 
+      const saveQuery = existingSubmission?.id
+        ? supabase.from('test_submissions').update(payload).eq('id', existingSubmission.id)
+        : supabase.from('test_submissions').insert(payload);
+
+      const { error: saveError } = await saveQuery;
+      if (saveError) throw saveError;
+
+      const savedSubmissionId = existingSubmission?.id;
+      const verificationQuery = supabase
+        .from('test_submissions')
+        .select('id, answers_json, writing_responses, speaking_recording_urls, mst_path, status')
+        .eq('assignment_id', assignmentId)
+        .eq('student_id', user.id)
+        .order('submitted_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const { data: savedSubmission, error: verificationError } = await verificationQuery;
+      if (verificationError) throw verificationError;
+      if (!savedSubmission?.id || (savedSubmissionId && savedSubmission.id !== savedSubmissionId)) {
+        throw new Error('Submission could not be verified. Please retry.');
+      }
+
+      const savedAnswers = savedSubmission.answers_json ?? {};
+      const savedWriting = savedSubmission.writing_responses ?? {};
+      const savedSpeaking = savedSubmission.speaking_recording_urls ?? {};
+      const savedMst = savedSubmission.mst_path ?? {};
+      const missingAnswerKey = Object.keys(finalAnswers).find(key => savedAnswers[key] !== finalAnswers[key]);
+      const missingWritingKey = Object.keys(finalWritingAnswers).find(key => JSON.stringify(savedWriting[key]) !== JSON.stringify(finalWritingAnswers[key]));
+      const missingSpeakingKey = Object.keys(speakingUrls).find(key => savedSpeaking[key] !== speakingUrls[key]);
+      const missingMstKey = Object.keys(finalMstPaths).find(key => savedMst[key] !== finalMstPaths[key]);
+
+      if (savedSubmission.status !== 'submitted' || missingAnswerKey || missingWritingKey || missingSpeakingKey || missingMstKey) {
+        throw new Error('Submission verification failed. Please retry so all answers are saved.');
+      }
+
+      clearDraft();
       router.push(`/test/${assignmentId}/results`);
     } catch (err) {
       console.error('Submit failed:', err);
+      setSubmissionError(err?.message || 'Your test could not be submitted. Check your connection and try again.');
       setSubmitting(false);
     }
   }
@@ -583,6 +845,7 @@ export default function TestPage() {
   //  Computed navbar props 
   const isReadingSection = section === 'reading';
   const isListeningSection = section === 'listening';
+  const isAdaptive = isReadingSection || isListeningSection;
   const isQuestionScreen = screen === 'question';
   const showVolume = screen !== 'module_end' && screen !== 'section_end' && screen !== 'done';
   const showBack = isReadingSection && isQuestionScreen;
@@ -591,7 +854,11 @@ export default function TestPage() {
     section === 'listening' &&
     isQuestionScreen &&
     ['listen_choose_response', 'listen_conversation', 'listen_announcement', 'listen_academic_talk'].includes(currentQuestion?.task_type)
-  ) ? listenChooseCountdown : null;
+  ) ? listenChooseCountdown : (
+    section === 'writing' &&
+    isQuestionScreen &&
+    WRITING_TASK_SECONDS[currentQuestion?.task_type]
+  ) ? writingCountdown : null;
 
   const counterText = (() => {
     if (!isQuestionScreen) return '';
@@ -625,7 +892,7 @@ export default function TestPage() {
     const qId = currentQuestion.id;
     const options = rawOptions ? (typeof rawOptions === 'string' ? JSON.parse(rawOptions) : rawOptions) : [];
     const selected = answers[qId] ?? null;
-    const onSelect = (letter) => setAnswers(prev => ({ ...prev, [qId]: letter }));
+    const onSelect = (letter) => saveAnswerValue(qId, letter);
 
     // Weighted calculations
     const totalQuestions = questions.reduce((sum, item) => sum + (item.task_type === 'c_test' ? 10 : 1), 0);
@@ -644,7 +911,7 @@ export default function TestPage() {
           passage={prompt}
           instruction={customInstruction}
           answers={answers}
-          onAnswer={(blankId, val) => setAnswers(prev => ({ ...prev, [blankId]: val }))}
+          onAnswer={saveAnswerValue}
           questionRange={[questionNumber, questionNumber + 9]}
           totalQuestions={totalQuestions}
         />
@@ -715,7 +982,7 @@ export default function TestPage() {
           options={options}
           tiles={tiles}
           answer={writingAnswers[qId] ?? []}
-          onAnswer={ordered => setWritingAnswers(prev => ({ ...prev, [qId]: ordered }))}
+          onAnswer={ordered => saveWritingValue(qId, ordered)}
           questionNumber={questionNumber}
           totalQuestions={totalQuestions}
         />
@@ -727,20 +994,20 @@ export default function TestPage() {
           prompt={prompt}
           options={options}
           value={writingAnswers[qId] ?? ''}
-          onChange={val => setWritingAnswers(prev => ({ ...prev, [qId]: val }))}
+          onChange={val => saveWritingValue(qId, val)}
           questionNumber={questionNumber}
           totalQuestions={totalQuestions}
         />
       );
     }
-    if (task_type === 'write_discussion') {
+    if (task_type === 'write_discussion' || task_type === 'academic_discussion') {
       return (
         <WriteDiscussionRenderer
           prompt={prompt}
           options={options}
           speakerPhotoUrl={speaker_photo_url}
           value={writingAnswers[qId] ?? ''}
-          onChange={val => setWritingAnswers(prev => ({ ...prev, [qId]: val }))}
+          onChange={val => saveWritingValue(qId, val)}
           questionNumber={questionNumber}
           totalQuestions={totalQuestions}
         />
@@ -754,7 +1021,7 @@ export default function TestPage() {
           audioUrl={audio_url}
           speakerPhotoUrl={speaker_photo_url}
           prompt={prompt}
-          onRecordingReady={blob => setSpeakingBlobs(prev => ({ ...prev, [qId]: blob }))}
+          onRecordingReady={blob => saveSpeakingBlob(qId, blob)}
           onAutoAdvance={goNextTimed}
         />
       );
@@ -767,7 +1034,7 @@ export default function TestPage() {
           interviewerPhotoUrl={speaker_photo_url}
           prepSeconds={0}
           autoAdvanceDelaySeconds={5}
-          onRecordingReady={blob => setSpeakingBlobs(prev => ({ ...prev, [qId]: blob }))}
+          onRecordingReady={blob => saveSpeakingBlob(qId, blob)}
           onAutoAdvance={goNextTimed}
           questionNumber={questionNumber}
           totalQuestions={totalQuestions}
@@ -828,7 +1095,7 @@ export default function TestPage() {
 
   //  SECTION DIRECTIONS SCREEN
   if (screen === 'module_intro') {
-    const moduleLabel = currentModule === 'module1' ? 'Module 1' : (mstPaths[section] === 'hard' ? 'Module 2 (Advanced)' : 'Module 2 (Standard)');
+    const moduleLabel = isAdaptive ? (currentModule === 'module1' ? 'Module 1' : 'Module 2') : '';
     const isListening = section === 'listening';
 
     const sectionIcon = {
@@ -845,8 +1112,8 @@ export default function TestPage() {
           <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center', color: 'var(--teal)' }}>
             {sectionIcon}
           </div>
-          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--teal)', marginBottom: 4 }}>
-            {sectionLabel} Section &middot; {moduleLabel}
+          <div style={{ fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--teal)', marginBottom: 4 }}>
+            {sectionLabel} Section {moduleLabel && <>&middot; <span style={{ fontSize: 18 }}>{moduleLabel}</span></>}
           </div>
           <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, color: 'var(--deep-navy)' }}>Section Directions</h2>
           <div style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.75, marginBottom: 24, textAlign: 'left', background: 'rgba(0,0,0,0.03)', padding: '16px 20px', borderRadius: 12 }}>
@@ -883,7 +1150,7 @@ export default function TestPage() {
           showSubbar={true}
           showBack={false}
           showNext={false}
-          subbarInfo={`${sectionLabel} - ${currentModule === 'module1' ? 'Module 1' : (mstPaths[section] === 'hard' ? 'Module 2 Advanced' : 'Module 2 Standard')}`}
+          subbarInfo={`${sectionLabel}${isAdaptive ? ` - ${currentModule === 'module1' ? 'Module 1' : 'Module 2'}` : ''}`}
         />
         <div className="test-layout">
           <ListenGroupAudioIntro
@@ -911,7 +1178,7 @@ export default function TestPage() {
           showSubbar={true}
           showBack={false}
           showNext={false}
-          subbarInfo={`${sectionLabel} - ${currentModule === 'module1' ? 'Module 1' : (mstPaths[section] === 'hard' ? 'Module 2 Advanced' : 'Module 2 Standard')}`}
+          subbarInfo={`${sectionLabel}${isAdaptive ? ` - ${currentModule === 'module1' ? 'Module 1' : 'Module 2'}` : ''}`}
         />
         <div className="test-layout">
           <ListenRepeatIntro
@@ -939,7 +1206,7 @@ export default function TestPage() {
           showSubbar={true}
           showBack={false}
           showNext={false}
-          subbarInfo={`${sectionLabel} - ${currentModule === 'module1' ? 'Module 1' : (mstPaths[section] === 'hard' ? 'Module 2 Advanced' : 'Module 2 Standard')}`}
+          subbarInfo={`${sectionLabel}${isAdaptive ? ` - ${currentModule === 'module1' ? 'Module 1' : 'Module 2'}` : ''}`}
         />
         <div className="test-layout">
           <TakeInterviewIntro
@@ -1021,6 +1288,16 @@ export default function TestPage() {
     );
   }
 
+  if (screen === 'done') {
+    return (
+      <FinalSubmissionScreen
+        submitting={submitting}
+        error={submissionError}
+        onRetry={handleSubmit}
+      />
+    );
+  }
+
   //  QUESTION SCREEN 
   return (
     <div style={{ minHeight: '100vh' }}>
@@ -1039,7 +1316,7 @@ export default function TestPage() {
         nextLabel={questionIdx >= questions.length - 1 ? 'Next Section' : 'Next'}
         nextDisabled={false}
         questionCountdown={questionCountdown}
-        subbarInfo={`${sectionLabel} - ${currentModule === 'module1' ? 'Module 1' : (mstPaths[section] === 'hard' ? 'Module 2 Advanced' : 'Module 2 Standard')}`}
+        subbarInfo={`${sectionLabel}${isAdaptive ? ` - ${currentModule === 'module1' ? 'Module 1' : 'Module 2'}` : ''}`}
       />
 
       {/* Must Answer modal */}
@@ -1082,6 +1359,73 @@ function FullScreenMessage({ children, error }) {
             onClick={() => window.location.reload()}
           >
             Retry Connection
+          </button>
+        )}
+      </div>
+      <style jsx>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
+    </div>
+  );
+}
+
+function FinalSubmissionScreen({ submitting, error, onRetry }) {
+  const isError = Boolean(error);
+
+  return (
+    <div className="premium-bg" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div className="glass-card" style={{ maxWidth: 520, width: '100%', textAlign: 'center', padding: '34px 40px' }}>
+        <div style={{ marginBottom: 18, display: 'flex', justifyContent: 'center' }}>
+          <div style={{
+            width: 64,
+            height: 64,
+            borderRadius: '50%',
+            background: isError ? 'rgba(239,68,68,0.12)' : 'var(--teal-light)',
+            color: isError ? '#b91c1c' : 'var(--teal)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            {isError ? (
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            ) : (
+              <div className="spinner" style={{ width: 34, height: 34, border: '4px solid rgba(13, 115, 119, 0.18)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+            )}
+          </div>
+        </div>
+
+        <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: isError ? '#b91c1c' : 'var(--teal)', marginBottom: 8 }}>
+          {isError ? 'Submission Interrupted' : 'Submitting Test'}
+        </div>
+
+        <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 10, color: 'var(--deep-navy)' }}>
+          {isError ? 'We could not submit your test' : 'Saving your responses'}
+        </h2>
+
+        <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.65, marginBottom: 22 }}>
+          {isError
+            ? 'Your responses are still held on this page. Do not close or refresh this tab. Check your connection, then retry submission.'
+            : 'Please keep this tab open while your answers and speaking recordings are uploaded.'}
+        </p>
+
+        {isError && (
+          <div style={{ textAlign: 'left', border: '1px solid rgba(239,68,68,0.28)', background: 'rgba(254,242,242,0.9)', borderRadius: 10, padding: '12px 14px', color: '#991b1b', fontSize: 13, lineHeight: 1.5, marginBottom: 20 }}>
+            {error}
+          </div>
+        )}
+
+        {isError && (
+          <button
+            className="btn-premium"
+            style={{ width: '100%' }}
+            onClick={onRetry}
+            disabled={submitting}
+          >
+            {submitting ? 'Retrying Submission...' : 'Retry Submission'}
           </button>
         )}
       </div>

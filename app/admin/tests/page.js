@@ -12,7 +12,7 @@ export default function AdminTestsPage() {
   useEffect(() => {
     const sb = createClient();
     sb.from('tests')
-      .select('id, title, created_at, test_sections(id)')
+      .select('id, title, created_at, test_sections(id, test_questions(id, is_scored))')
       .order('created_at', { ascending: false })
       .then(({ data }) => { setTests(data ?? []); setLoading(false); });
   }, []);
@@ -65,7 +65,7 @@ export default function AdminTestsPage() {
             <thead>
               <tr>
                 <th style={{ background: '#f8fafc', color: 'var(--text-secondary)' }}>Title</th>
-                <th style={{ background: '#f8fafc', color: 'var(--text-secondary)' }}>Sections</th>
+                <th style={{ background: '#f8fafc', color: 'var(--text-secondary)' }}>Composition</th>
                 <th style={{ background: '#f8fafc', color: 'var(--text-secondary)' }}>Created</th>
                 <th style={{ background: '#f8fafc', color: 'var(--text-secondary)', textAlign: 'right' }}>Actions</th>
               </tr>
@@ -80,7 +80,27 @@ export default function AdminTestsPage() {
                     </div>
                   </td>
                   <td>
-                    <span className="badge badge--teal">{t.test_sections?.length ?? 0} sections</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      <span className="badge badge--ghost" style={{ fontSize: 11, background: '#f1f5f9', color: '#64748b' }}>
+                        {t.test_sections?.length ?? 0} Sections
+                      </span>
+                      {(() => {
+                        const scored = t.test_sections?.reduce((acc, s) => acc + (s.test_questions?.filter(q => q.is_scored).length ?? 0), 0) ?? 0;
+                        const unscored = t.test_sections?.reduce((acc, s) => acc + (s.test_questions?.filter(q => !q.is_scored).length ?? 0), 0) ?? 0;
+                        return (
+                          <>
+                            <span className="badge badge--green" style={{ fontSize: 11 }}>
+                              {scored} Scored
+                            </span>
+                            {unscored > 0 && (
+                              <span className="badge badge--warn" style={{ fontSize: 11 }}>
+                                {unscored} Unscored
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
                   </td>
                   <td style={{ fontSize: 13 }}>
                     {new Date(t.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}

@@ -52,6 +52,9 @@ export default function ToeflNavbar({
   const timeStr = timeRemaining != null
     ? `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
     : null;
+  const countdownStr = questionCountdown != null
+    ? `${String(Math.floor(Math.max(0, questionCountdown) / 60)).padStart(2, '0')}:${String(Math.max(0, questionCountdown) % 60).padStart(2, '0')}`
+    : null;
 
   return (
     <>
@@ -133,7 +136,7 @@ export default function ToeflNavbar({
         <div className="ets-subbar" role="navigation" aria-label="Question navigation">
           <span className="ets-subbar__info">{subbarInfo}</span>
           <div className="ets-subbar__nav">
-            {questionCountdown != null && (
+            {countdownStr && (
               <span
                 style={{
                   alignSelf: 'center',
@@ -151,7 +154,7 @@ export default function ToeflNavbar({
                 }}
                 aria-live="polite"
               >
-                00:{String(Math.max(0, questionCountdown)).padStart(2, '0')}
+                {countdownStr}
               </span>
             )}
             {showBack && (

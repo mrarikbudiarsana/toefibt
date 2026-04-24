@@ -14,15 +14,22 @@ export default function ListenConversationQuestionRenderer({
     .map(option => String(option).replace(/^[A-D][\.\)\:\-\s]+/i, ''));
 
   return (
-    <div style={{ minHeight: 'calc(100vh - var(--navbar-height) - var(--subbar-height))', background: '#ffffff', padding: '40px 24px' }}>
-      <div style={{ width: '100%', maxWidth: 1040, margin: '0 auto' }}>
+    <div style={{ 
+      minHeight: 'calc(100vh - var(--navbar-height) - var(--subbar-height))', 
+      background: '#ffffff', 
+      padding: '40px 24px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <div style={{ width: '100%', maxWidth: 1040 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 1.25fr', gap: 60, alignItems: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             {speakerPhotoUrl ? (
               <img
                 src={speakerPhotoUrl}
                 alt="Conversation speakers"
-                style={{ width: 340, maxWidth: '100%', height: 440, objectFit: 'contain', objectPosition: 'center top' }}
+                style={{ width: 340, maxWidth: '100%', height: 'auto', maxHeight: 440, objectFit: 'contain' }}
               />
             ) : (
               <div style={{ width: 340, height: 440, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: 22, background: '#f8fafc', borderRadius: 16 }}>

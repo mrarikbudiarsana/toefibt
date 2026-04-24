@@ -195,7 +195,9 @@ export default function DashboardPage() {
                   const takeable = canTake(a);
                   const latestSub = (a.test_submissions ?? []).slice(-1)[0];
                   const scores = latestSub?.band_scores;
-                  const overall = scores
+                  const hasFullScore = latestSub?.status === 'graded' && scores?.reading && scores?.listening && scores?.writing && scores?.speaking;
+                  const hasUnofficialScores = latestSub?.status === 'submitted' && scores?.reading && scores?.listening;
+                  const overall = hasFullScore
                     ? (((scores.reading ?? 0) + (scores.listening ?? 0) + (scores.writing ?? 0) + (scores.speaking ?? 0)) / 4).toFixed(1)
                     : null;
 
@@ -240,6 +242,14 @@ export default function DashboardPage() {
                               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>{overall} Avg</span>
                             </div>
                           </div>
+                        ) : hasUnofficialScores ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase' }}>Unofficial</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>
+                              R {scores.reading} / L {scores.listening}
+                            </span>
+                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Full score in 3 days</span>
+                          </div>
                         ) : (
                           <div style={{ color: 'var(--text-muted)', fontSize: 13, fontStyle: 'italic' }}>Pending</div>
                         )}
@@ -256,7 +266,7 @@ export default function DashboardPage() {
                               <ChevronRight size={16} />
                             </button>
                           )}
-                          {latestSub?.status === 'graded' && (
+                          {(latestSub?.status === 'graded' || latestSub?.status === 'submitted') && (
                             <button
                               className="btn btn--outline btn--sm"
                               onClick={() => router.push(`/test/${a.id}/results`)}

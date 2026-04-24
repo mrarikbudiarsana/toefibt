@@ -62,7 +62,7 @@ export default function TakeInterviewIntro({ contextText = '', introAudioUrl = '
     <div
       style={{
         minHeight: 'calc(100vh - var(--navbar-height) - var(--subbar-height))',
-        background: '#ececec',
+        background: '#ffffff',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
