@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import RadioOptionList from '@/components/shared/RadioOptionList';
+import { stripChoiceLabel } from '@/components/shared/choiceLabels';
 
 /**
  * Listen and Choose a Response
@@ -16,7 +17,7 @@ export default function ListenChooseRenderer({ audioUrl, speakerPhotoUrl, option
   const onAudioEndRef = useRef(onAudioEnd);
   const choices = (options.length ? options : ['Option A', 'Option B', 'Option C', 'Option D'])
     .slice(0, 4)
-    .map(option => String(option).replace(/^[A-D][\.\)\:\-\s]+/i, ''));
+    .map(stripChoiceLabel);
 
   useEffect(() => {
     onAudioEndRef.current = onAudioEnd;

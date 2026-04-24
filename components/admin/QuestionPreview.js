@@ -11,6 +11,7 @@ import ListenRepeatRenderer from '@/components/speaking/ListenRepeatRenderer';
 import ListenRepeatIntro from '@/components/speaking/ListenRepeatIntro';
 import TakeInterviewRenderer from '@/components/speaking/TakeInterviewRenderer';
 import RadioOptionList from '@/components/shared/RadioOptionList';
+import { stripChoiceLabel } from '@/components/shared/choiceLabels';
 
 function parseReadingPassages(value) {
   let passages = [];
@@ -112,7 +113,7 @@ function ListenChooseMock({ choices = [], speakerPhotoUrl = '' }) {
   const [selected, setSelected] = useState(null);
   const cleanChoices = choices
     .slice(0, 4)
-    .map(option => String(option).replace(/^[A-D][\.\)\:\-\s]+/i, ''));
+    .map(stripChoiceLabel);
 
   return (
     <PreviewShell title="Listening Preview" subtitle="Listen and Choose displays audio with options only (prompt hidden).">
@@ -146,7 +147,7 @@ function ListenConversationMock({ choices = [], speakerPhotoUrl = '', question =
   const cleanQuestion = question?.trim() || 'What is the main point of the conversation?';
   const cleanChoices = choices
     .slice(0, 4)
-    .map(option => String(option).replace(/^[A-D][\.\)\:\-\s]+/i, ''));
+    .map(stripChoiceLabel);
 
   return (
     <PreviewShell title="Listening Preview" subtitle="Conversation flow preview: audio plays first, then this timed question screen.">
