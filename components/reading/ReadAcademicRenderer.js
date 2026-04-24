@@ -72,7 +72,7 @@ export default function ReadAcademicRenderer({ passage = '', question, options =
           </div>
 
           <p style={{ fontSize: 18, fontWeight: 600, color: '#111', marginBottom: 36, lineHeight: 1.5 }}>
-            {question ?? 'According to the passage, what is the main idea?'}
+            <HighlightedText text={question ?? 'According to the passage, what is the main idea?'} />
           </p>
 
           <RadioOptionList options={choices} selected={selected} onSelect={onSelect} gap={20} fontSize={16} />

@@ -1200,6 +1200,11 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
                     : 'Enter question text, passage, or instruction...'
               }
             />
+            {['read_daily_life', 'read_academic'].includes(q.task_type) && (
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
+                <strong>Tip:</strong> Use <code>==word==</code> to highlight vocabulary words.
+              </p>
+            )}
             {q.task_type === 'c_test' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>

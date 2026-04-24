@@ -1036,6 +1036,11 @@ function QuestionEditor({ q, qIdx, displayNumber, sectionType, sec, onChange, on
                     : 'Enter question text, passage, or instruction...'
               }
             />
+            {['read_daily_life', 'read_academic'].includes(q.task_type) && (
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
+                <strong>Tip:</strong> Use <code>==word==</code> to highlight vocabulary words.
+              </p>
+            )}
             {q.task_type === 'c_test' && (
               <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
                 <strong>How to create blanks:</strong> Wrap the missing part of the word in double curly brackets.

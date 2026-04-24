@@ -450,7 +450,7 @@ export default function ReadDailyLifeRenderer({ passage = '', question, options 
             </div>
 
             <p style={{ fontSize: 18, fontWeight: 600, color: '#111', marginBottom: 40, lineHeight: 1.55 }}>
-              {question ?? 'What is the main purpose of this text?'}
+              <HighlightedText text={question ?? 'What is the main purpose of this text?'} />
             </p>
 
             <RadioOptionList options={choices} selected={selected} onSelect={onSelect} gap={24} fontSize={16} />

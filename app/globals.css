@@ -447,7 +447,7 @@ textarea.input { resize: vertical; min-height: 120px; }
 }
 
 .passage-hl {
-  background: #d1d5db; /* Gray highlight like ETS screenshots */
+  background: #fef08a;
   color: #111;
   display: inline-block;
   line-height: 1.25;

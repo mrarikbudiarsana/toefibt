@@ -3,14 +3,13 @@
 import React from 'react';
 
 /**
- * Renders text with support for highlight syntax: ==text==
- * Converts it to <span class="passage-hl">text</span>
+ * Renders text with support for lightweight inline formatting:
+ * ==text== for highlighted text and **text** for bold text.
  */
 export default function HighlightedText({ text = '' }) {
   if (typeof text !== 'string') return text;
 
-  // Split by ==keyword==
-  const parts = text.split(/(==[^=]+==)/g);
+  const parts = text.split(/(==[^=]+==|\*\*[^*]+\*\*)/g);
 
   return (
     <>
@@ -22,6 +21,10 @@ export default function HighlightedText({ text = '' }) {
               {content}
             </span>
           );
+        }
+        if (part.startsWith('**') && part.endsWith('**')) {
+          const content = part.slice(2, -2);
+          return <strong key={i}>{content}</strong>;
         }
         return <span key={i}>{part}</span>;
       })}
