@@ -195,6 +195,7 @@ function ListenRepeatFlowMock({ question = {}, options = [] }) {
             audioUrl={question.audio_url}
             speakerPhotoUrl={question.speaker_photo_url}
             prompt={question.prompt}
+            maxRecordSeconds={8}
             onRecordingReady={() => {}}
           />
         </div>

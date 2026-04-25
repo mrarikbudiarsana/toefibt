@@ -6,7 +6,7 @@ import { useState, useRef, useEffect } from 'react';
  * Flow:
  *   1. Audio plays (sentence/phrase)
  *   2. Countdown (3 seconds) before recording starts
- *   3. Student records (max 15 seconds)
+ *   3. Student records (max 8 seconds)
  *   4. Playback available
  *
  * Props:
@@ -15,7 +15,7 @@ import { useState, useRef, useEffect } from 'react';
  *   maxRecordSeconds: number
  *   onRecordingReady: (blob: Blob) => void
  */
-export default function ListenRepeatRenderer({ audioUrl, speakerPhotoUrl = '', prompt = '', maxRecordSeconds = 15, onRecordingReady, onAutoAdvance }) {
+export default function ListenRepeatRenderer({ audioUrl, speakerPhotoUrl = '', prompt = '', maxRecordSeconds = 8, onRecordingReady, onAutoAdvance }) {
   const [phase, setPhase] = useState('init'); // init | pre_audio_countdown | audio | countdown | recording | done
   const [countdown, setCountdown] = useState(3);
   const [preCountdown, setPreCountdown] = useState(3);

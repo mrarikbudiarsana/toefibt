@@ -28,7 +28,7 @@ const SECTION_LABELS = { reading: 'Reading', listening: 'Listening', writing: 'W
 // intro   module_intro   question   module_end   section_end
 const TIMER_DEFAULTS = { reading: 36 * 60, listening: 36 * 60, writing: 29 * 60, speaking: 16 * 60 };
 const WRITING_TASK_SECONDS = {
-  build_sentence: 8 * 60,
+  build_sentence: 6 * 60,
   write_email: 7 * 60,
   write_discussion: 10 * 60,
   academic_discussion: 10 * 60,
@@ -1021,6 +1021,7 @@ export default function TestPage() {
           audioUrl={audio_url}
           speakerPhotoUrl={speaker_photo_url}
           prompt={prompt}
+          maxRecordSeconds={8}
           onRecordingReady={blob => saveSpeakingBlob(qId, blob)}
           onAutoAdvance={goNextTimed}
         />
