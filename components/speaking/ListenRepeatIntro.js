@@ -65,7 +65,7 @@ export default function ListenRepeatIntro({ contextText = '', introAudioUrl = ''
       />
 
       <div style={{ width: '100%', maxWidth: 760, border: '2px solid #111', background: '#fff', padding: '18px 16px 20px' }}>
-        <div style={{ fontSize: 28, fontWeight: 700, color: '#111', textAlign: 'center', lineHeight: 1.3, marginBottom: 12 }}>
+        <div style={{ fontSize: 22, fontWeight: 700, color: '#111', textAlign: 'center', lineHeight: 1.35, marginBottom: 12 }}>
           {contextText || 'Listen to the speaker and repeat what she says. Repeat only once.'}
         </div>
 
