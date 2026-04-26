@@ -2,57 +2,101 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Users, Search, UserPlus, Mail, Calendar, ArrowRight, UserCheck, AlertCircle } from 'lucide-react';
+import { Users, Search, UserPlus, Mail, Calendar, UserCheck, AlertCircle, X } from 'lucide-react';
 
 export default function AdminStudentsPage() {
   const router = useRouter();
    const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState('');
+  const [unassigningId, setUnassigningId] = useState(null);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    async function fetchStudents() {
-      const sb = createClient();
-      try {
-        // 1. Fetch Students (excluding admins)
-        const { data: studentsData, error: studentsError } = await sb
-          .from('student_profiles')
-          .select('id, email, full_name, created_at, role')
-          .eq('role', 'student')
-          .order('created_at', { ascending: false });
+  async function fetchStudents() {
+    const sb = createClient();
+    try {
+      setError(null);
+      // 1. Fetch Students (excluding admins)
+      const { data: studentsData, error: studentsError } = await sb
+        .from('student_profiles')
+        .select('id, email, full_name, created_at, role')
+        .eq('role', 'student')
+        .order('created_at', { ascending: false });
 
-        if (studentsError) throw studentsError;
+      if (studentsError) throw studentsError;
 
-        // 2. Fetch all assignments for these students to calculate stats
-        const studentIds = (studentsData || []).map(s => s.id);
-        const { data: assignData, error: assignError } = await sb
-          .from('test_assignments')
-          .select('id, student_id, test_submissions(id, status)')
-          .in('student_id', studentIds);
-
-        if (assignError) {
-          console.warn('Stats fetch error:', assignError);
-          // We don't throw here so the student list still shows even if stats fail
-          setStudents(studentsData ?? []);
-        } else {
-          // Map stats back to students
-          const enriched = (studentsData || []).map(s => ({
-            ...s,
-            test_assignments: (assignData || []).filter(a => a.student_id === s.id)
-          }));
-          setStudents(enriched);
-        }
-      } catch (err) {
-        console.error('Final fetch error:', err);
-        setError(err.message || JSON.stringify(err));
-      } finally {
-        setLoading(false);
+      // 2. Fetch all assignments for these students to show tests and calculate stats
+      const studentIds = (studentsData || []).map(s => s.id);
+      if (studentIds.length === 0) {
+        setStudents(studentsData ?? []);
+        return;
       }
+
+      const { data: assignData, error: assignError } = await sb
+        .from('test_assignments')
+        .select('id, student_id, available_from, due_at, tests(id, title), test_submissions(id, status)')
+        .in('student_id', studentIds)
+        .order('created_at', { ascending: false });
+
+      if (assignError) {
+        console.warn('Stats fetch error:', assignError);
+        // We don't throw here so the student list still shows even if stats fail
+        setStudents(studentsData ?? []);
+      } else {
+        // Map assignments back to students
+        const enriched = (studentsData || []).map(s => ({
+          ...s,
+          test_assignments: (assignData || []).filter(a => a.student_id === s.id)
+        }));
+        setStudents(enriched);
+      }
+    } catch (err) {
+      console.error('Final fetch error:', err);
+      setError(err.message || JSON.stringify(err));
+    } finally {
+      setLoading(false);
     }
-    
+  }
+
+  useEffect(() => {
     fetchStudents();
   }, []);
+
+  async function handleUnassign(student, assignment) {
+    const testTitle = assignment.tests?.title ?? 'Untitled Test';
+    const submissionCount = assignment.test_submissions?.length ?? 0;
+    const warning = submissionCount > 0
+      ? ` This assignment has ${submissionCount} submission${submissionCount !== 1 ? 's' : ''}; removing it will also remove related submission data.`
+      : '';
+
+    if (!window.confirm(`Unassign "${testTitle}" from ${student.full_name || student.email}?${warning}`)) return;
+
+    setUnassigningId(assignment.id);
+    setError(null);
+    setSuccess('');
+
+    try {
+      const sb = createClient();
+      const { error: deleteError } = await sb
+        .from('test_assignments')
+        .delete()
+        .eq('id', assignment.id);
+
+      if (deleteError) throw deleteError;
+
+      setStudents(prev => prev.map(s => (
+        s.id === student.id
+          ? { ...s, test_assignments: (s.test_assignments ?? []).filter(a => a.id !== assignment.id) }
+          : s
+      )));
+      setSuccess(`Unassigned "${testTitle}" from ${student.full_name || student.email}.`);
+    } catch (err) {
+      setError(err.message || JSON.stringify(err));
+    } finally {
+      setUnassigningId(null);
+    }
+  }
 
   const filtered = students.filter(s => {
     const q = search.toLowerCase();
@@ -82,6 +126,16 @@ export default function AdminStudentsPage() {
           />
         </div>
       </div>
+
+      {success && (
+        <div style={{ 
+          background: 'var(--success-bg)', border: '1px solid #86efac', 
+          borderRadius: 12, padding: '14px 16px', marginBottom: 20, 
+          color: 'var(--success)', fontWeight: 600, fontSize: 14
+        }}>
+          {success}
+        </div>
+      )}
 
       {loading ? (
         <div style={{ padding: '80px', textAlign: 'center' }}>
@@ -122,6 +176,7 @@ export default function AdminStudentsPage() {
                 <th style={{ background: '#f8fafc', color: 'var(--text-secondary)' }}>Student Name</th>
                 <th style={{ background: '#f8fafc', color: 'var(--text-secondary)' }}>Email</th>
                 <th style={{ background: '#f8fafc', color: 'var(--text-secondary)' }}>Joined Date</th>
+                <th style={{ background: '#f8fafc', color: 'var(--text-secondary)' }}>Assigned Tests</th>
                 <th style={{ background: '#f8fafc', color: 'var(--text-secondary)' }}>Performance</th>
                 <th style={{ background: '#f8fafc', color: 'var(--text-secondary)', textAlign: 'right' }}>Actions</th>
               </tr>
@@ -159,6 +214,49 @@ export default function AdminStudentsPage() {
                         <Calendar size={12} style={{ opacity: 0.5 }} />
                         {s.created_at ? new Date(s.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
                       </div>
+                    </td>
+                    <td style={{ minWidth: 260, maxWidth: 360 }}>
+                      {assignments.length === 0 ? (
+                        <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>No tests assigned</span>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {assignments.map(a => {
+                            const title = a.tests?.title ?? 'Untitled Test';
+                            const submissionCount = a.test_submissions?.length ?? 0;
+                            return (
+                              <div
+                                key={a.id}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: 8,
+                                  padding: '6px 8px',
+                                  border: '1px solid var(--border)',
+                                  borderRadius: 8,
+                                  background: '#fff',
+                                }}
+                              >
+                                <span title={title} style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {title}
+                                  {submissionCount > 0 && (
+                                    <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}> ({submissionCount} sub{submissionCount !== 1 ? 's' : ''})</span>
+                                  )}
+                                </span>
+                                <button
+                                  className="btn btn--ghost btn--sm"
+                                  onClick={() => handleUnassign(s, a)}
+                                  disabled={unassigningId === a.id}
+                                  title={`Unassign ${title}`}
+                                  style={{ width: 28, height: 28, padding: 0, flexShrink: 0, color: '#991b1b' }}
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: 8 }}>
