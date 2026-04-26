@@ -118,23 +118,68 @@ function LoginForm({ router }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [notice, setNotice] = useState('');
+
+  function isEmailNotConfirmed(err) {
+    return err?.code === 'email_not_confirmed'
+      || /email not confirmed/i.test(err?.message ?? '');
+  }
 
   async function handleLogin(e) {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setNotice('');
+    setNeedsConfirmation(false);
     try {
       const supabase = createClient();
-      const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
+      const normalizedEmail = email.trim();
+      const { data, error: authErr } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
       if (authErr) throw authErr;
 
       const role = data.user?.user_metadata?.role ?? 'student';
       router.push(role === 'admin' ? '/admin' : '/dashboard');
     } catch (err) {
-      setError(err.message || 'Invalid email or password.');
+      if (isEmailNotConfirmed(err)) {
+        setNeedsConfirmation(true);
+        setError('Your account exists, but your email is not verified yet. Please check your email inbox or spam folder for the confirmation link.');
+      } else {
+        setError(err.message || 'Invalid email or password.');
+      }
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleResendConfirmation() {
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) {
+      setError('Enter your email address first, then resend the confirmation link.');
+      setNeedsConfirmation(true);
+      return;
+    }
+
+    setResending(true);
+    setNotice('');
+    try {
+      const supabase = createClient();
+      const { error: resendErr } = await supabase.auth.resend({
+        type: 'signup',
+        email: normalizedEmail,
+      });
+      if (resendErr) throw resendErr;
+      setNotice(`Confirmation email resent to ${normalizedEmail}.`);
+    } catch (err) {
+      setError(err.message || 'Could not resend the confirmation email. Please try again.');
+      setNeedsConfirmation(true);
+    } finally {
+      setResending(false);
     }
   }
 
@@ -146,7 +191,26 @@ function LoginForm({ router }) {
       {error && (
         <div className="login-form__error">
           <AlertCircle size={18} />
-          {error}
+          <div style={{ flex: 1 }}>
+            <div>{error}</div>
+            {needsConfirmation && (
+              <button
+                type="button"
+                className="login-form__link-button"
+                onClick={handleResendConfirmation}
+                disabled={resending}
+              >
+                {resending ? 'Sending confirmation email...' : 'Resend confirmation email'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {notice && (
+        <div className="login-form__success">
+          <CheckCircle2 size={18} />
+          {notice}
         </div>
       )}
 
@@ -160,7 +224,10 @@ function LoginForm({ router }) {
             className="input-with-icon"
             placeholder="you@example.com"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={e => {
+              setEmail(e.target.value);
+              setNotice('');
+            }}
             required
             autoComplete="email"
           />
@@ -258,7 +325,7 @@ function SignupForm({ onSuccess }) {
         <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, color: 'var(--text-primary)' }}>Account Created</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.6, marginBottom: 32 }}>
           We sent a confirmation link to <strong>{email}</strong>.<br />
-          Please click the link to verify your account.
+          Please check your email inbox or spam folder, then click the link to verify your account.
         </p>
         <button className="btn btn--outline btn--full" onClick={onSuccess}>
           Back to Sign in
@@ -369,4 +436,3 @@ function SignupForm({ onSuccess }) {
     </form>
   );
 }
-
