@@ -1,23 +1,41 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Users, Search, UserPlus, Mail, Calendar, UserCheck, AlertCircle, X } from 'lucide-react';
+import {
+  AlertCircle,
+  Calendar,
+  CheckCircle2,
+  FileCheck,
+  Mail,
+  Search,
+  UserCheck,
+  UserPlus,
+  Users,
+  X
+} from 'lucide-react';
+
+const FILTERS = [
+  { value: 'all', label: 'All' },
+  { value: 'assigned', label: 'Assigned' },
+  { value: 'unassigned', label: 'Needs test' },
+  { value: 'submitted', label: 'Submitted' },
+];
 
 export default function AdminStudentsPage() {
   const router = useRouter();
-   const [students, setStudents] = useState([]);
+  const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState('');
   const [unassigningId, setUnassigningId] = useState(null);
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
 
   async function fetchStudents() {
     const sb = createClient();
     try {
       setError(null);
-      // 1. Fetch Students (excluding admins)
       const { data: studentsData, error: studentsError } = await sb
         .from('student_profiles')
         .select('id, email, full_name, created_at, role')
@@ -26,7 +44,6 @@ export default function AdminStudentsPage() {
 
       if (studentsError) throw studentsError;
 
-      // 2. Fetch all assignments for these students to show tests and calculate stats
       const studentIds = (studentsData || []).map(s => s.id);
       if (studentIds.length === 0) {
         setStudents(studentsData ?? []);
@@ -41,13 +58,11 @@ export default function AdminStudentsPage() {
 
       if (assignError) {
         console.warn('Stats fetch error:', assignError);
-        // We don't throw here so the student list still shows even if stats fail
         setStudents(studentsData ?? []);
       } else {
-        // Map assignments back to students
-        const enriched = (studentsData || []).map(s => ({
-          ...s,
-          test_assignments: (assignData || []).filter(a => a.student_id === s.id)
+        const enriched = (studentsData || []).map(student => ({
+          ...student,
+          test_assignments: (assignData || []).filter(assignment => assignment.student_id === student.id)
         }));
         setStudents(enriched);
       }
@@ -85,10 +100,13 @@ export default function AdminStudentsPage() {
 
       if (deleteError) throw deleteError;
 
-      setStudents(prev => prev.map(s => (
-        s.id === student.id
-          ? { ...s, test_assignments: (s.test_assignments ?? []).filter(a => a.id !== assignment.id) }
-          : s
+      setStudents(prev => prev.map(studentItem => (
+        studentItem.id === student.id
+          ? {
+            ...studentItem,
+            test_assignments: (studentItem.test_assignments ?? []).filter(assignmentItem => assignmentItem.id !== assignment.id)
+          }
+          : studentItem
       )));
       setSuccess(`Unassigned "${testTitle}" from ${student.full_name || student.email}.`);
     } catch (err) {
@@ -98,207 +116,726 @@ export default function AdminStudentsPage() {
     }
   }
 
-  const filtered = students.filter(s => {
-    const q = search.toLowerCase();
-    return (
-      (s.full_name ?? '').toLowerCase().includes(q) ||
-      (s.email ?? '').toLowerCase().includes(q)
-    );
-  });
+  const stats = useMemo(() => {
+    const assignments = students.flatMap(student => student.test_assignments ?? []);
+    const submissions = assignments.flatMap(assignment => assignment.test_submissions ?? []);
+
+    return {
+      total: students.length,
+      assigned: students.filter(student => (student.test_assignments ?? []).length > 0).length,
+      unassigned: students.filter(student => (student.test_assignments ?? []).length === 0).length,
+      submitted: students.filter(student =>
+        (student.test_assignments ?? []).some(assignment =>
+          (assignment.test_submissions ?? []).some(submission => submission.status === 'submitted' || submission.status === 'graded')
+        )
+      ).length,
+      submissions: submissions.length,
+    };
+  }, [students]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return students.filter(student => {
+      const assignments = student.test_assignments ?? [];
+      const submissions = assignments.flatMap(assignment => assignment.test_submissions ?? []);
+      const matchesSearch = !q || (
+        (student.full_name ?? '').toLowerCase().includes(q) ||
+        (student.email ?? '').toLowerCase().includes(q)
+      );
+      const matchesFilter =
+        filter === 'all' ||
+        (filter === 'assigned' && assignments.length > 0) ||
+        (filter === 'unassigned' && assignments.length === 0) ||
+        (filter === 'submitted' && submissions.some(submission => submission.status === 'submitted' || submission.status === 'graded'));
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [filter, search, students]);
 
   return (
-    <div className="dashboard">
-      <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+    <div className="dashboard students-page">
+      <div className="students-header">
         <div>
           <h1 className="page-title">Students</h1>
-          <p className="page-subtitle">All registered student accounts on the platform.</p>
+          <p className="page-subtitle">Find students, review their assigned tests, and jump to the next action.</p>
         </div>
-        <div style={{ position: 'relative', width: 300 }}>
-          <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
-            <Search size={16} />
-          </div>
+        <button className="btn btn--primary" onClick={() => router.push('/admin/assign')} style={{ borderRadius: 10 }}>
+          <UserPlus size={16} />
+          Assign Test
+        </button>
+      </div>
+
+      <div className="students-stats" aria-label="Student summary">
+        <SummaryCard label="Students" value={stats.total} icon={Users} />
+        <SummaryCard label="Assigned" value={stats.assigned} icon={UserCheck} />
+        <SummaryCard label="Need test" value={stats.unassigned} icon={UserPlus} />
+        <SummaryCard label="Submissions" value={stats.submissions} icon={FileCheck} />
+      </div>
+
+      <div className="students-toolbar">
+        <div className="students-search">
+          <Search size={17} />
           <input
-            className="input"
-            style={{ paddingLeft: 36, width: '100%', borderRadius: 12 }}
-            placeholder="Search by name or email"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={event => setSearch(event.target.value)}
+            placeholder="Search by name or email"
+            aria-label="Search students"
           />
+          {search && (
+            <button type="button" onClick={() => setSearch('')} aria-label="Clear search">
+              <X size={16} />
+            </button>
+          )}
+        </div>
+        <div className="students-filters" aria-label="Filter students">
+          {FILTERS.map(item => (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => setFilter(item.value)}
+              className={filter === item.value ? 'active' : ''}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {success && (
-        <div style={{ 
-          background: 'var(--success-bg)', border: '1px solid #86efac', 
-          borderRadius: 12, padding: '14px 16px', marginBottom: 20, 
-          color: 'var(--success)', fontWeight: 600, fontSize: 14
-        }}>
+        <div className="login-form__success" style={{ marginBottom: 18 }}>
+          <CheckCircle2 size={18} />
           {success}
         </div>
       )}
 
       {loading ? (
-        <div style={{ padding: '80px', textAlign: 'center' }}>
-          <div style={{ width: 32, height: 32, border: '2px solid var(--teal-light)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
-          <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Loading students...</p>
+        <div className="students-loading">
+          <div />
+          <p>Loading students...</p>
         </div>
       ) : error ? (
-        <div className="card" style={{ padding: '40px', border: '1px solid #fee2e2', background: '#fef2f2', color: '#991b1b', borderRadius: 12, display: 'flex', gap: 12, alignItems: 'center' }}>
-          <AlertCircle size={20} />
+        <div className="card students-error">
+          <AlertCircle size={22} />
           <div>
-            <strong style={{ display: 'block' }}>Database Error</strong>
-            <span style={{ fontSize: 14, opacity: 0.9 }}>{error}</span>
+            <strong>Database Error</strong>
+            <span>{error}</span>
           </div>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="card glass-card" style={{ textAlign: 'center', padding: '80px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-          <div style={{ 
-            width: 80, height: 80, borderRadius: '50%', 
-            background: 'var(--bg)', color: 'var(--text-muted)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
-            {search ? <Search size={40} /> : <Users size={40} />}
-          </div>
-          <div>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>
-              {search ? 'No matches' : 'No students yet'}
-            </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: 15, marginTop: 4 }}>
-              {search ? `Your search for "${search}" didn't return any results.` : 'Students will appear here once they register.'}
-            </p>
-          </div>
+        <div className="card glass-card students-empty">
+          <div>{search ? <Search size={38} /> : <Users size={38} />}</div>
+          <h2>{search || filter !== 'all' ? 'No matching students' : 'No students yet'}</h2>
+          <p>
+            {search || filter !== 'all'
+              ? 'Adjust the search or filter to broaden the list.'
+              : 'Students will appear here once they register.'}
+          </p>
         </div>
       ) : (
-        <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--border)' }}>
-          <table className="table" style={{ border: 'none', borderRadius: 0 }}>
-            <thead>
-              <tr>
-                <th style={{ background: '#f8fafc', color: 'var(--text-secondary)' }}>Student Name</th>
-                <th style={{ background: '#f8fafc', color: 'var(--text-secondary)' }}>Email</th>
-                <th style={{ background: '#f8fafc', color: 'var(--text-secondary)' }}>Joined Date</th>
-                <th style={{ background: '#f8fafc', color: 'var(--text-secondary)' }}>Assigned Tests</th>
-                <th style={{ background: '#f8fafc', color: 'var(--text-secondary)' }}>Performance</th>
-                <th style={{ background: '#f8fafc', color: 'var(--text-secondary)', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(s => {
-                const assignments = s.test_assignments ?? [];
-                const allSubs = assignments.flatMap(a => a.test_submissions ?? []);
-                const submitted = allSubs.filter(sub => sub.status === 'submitted').length;
-                const graded = allSubs.filter(sub => sub.status === 'graded').length;
-
-                return (
-                  <tr key={s.id}>
-                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ 
-                          width: 32, height: 32, borderRadius: '50%', 
-                          background: 'var(--teal-light)', color: 'var(--teal)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 12, fontWeight: 700
-                        }}>
-                          {s.full_name?.[0]?.toUpperCase() || '?'}
-                        </div>
-                        {s.full_name || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Unnamed</span>}
-                      </div>
-                    </td>
-                    <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Mail size={12} style={{ opacity: 0.5 }} />
-                        {s.email}
-                      </div>
-                    </td>
-                    <td style={{ fontSize: 13 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Calendar size={12} style={{ opacity: 0.5 }} />
-                        {s.created_at ? new Date(s.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
-                      </div>
-                    </td>
-                    <td style={{ minWidth: 260, maxWidth: 360 }}>
-                      {assignments.length === 0 ? (
-                        <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>No tests assigned</span>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {assignments.map(a => {
-                            const title = a.tests?.title ?? 'Untitled Test';
-                            const submissionCount = a.test_submissions?.length ?? 0;
-                            return (
-                              <div
-                                key={a.id}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  gap: 8,
-                                  padding: '6px 8px',
-                                  border: '1px solid var(--border)',
-                                  borderRadius: 8,
-                                  background: '#fff',
-                                }}
-                              >
-                                <span title={title} style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {title}
-                                  {submissionCount > 0 && (
-                                    <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}> ({submissionCount} sub{submissionCount !== 1 ? 's' : ''})</span>
-                                  )}
-                                </span>
-                                <button
-                                  className="btn btn--ghost btn--sm"
-                                  onClick={() => handleUnassign(s, a)}
-                                  disabled={unassigningId === a.id}
-                                  title={`Unassign ${title}`}
-                                  style={{ width: 28, height: 28, padding: 0, flexShrink: 0, color: '#991b1b' }}
-                                >
-                                  <X size={14} />
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <div title={`${assignments.length} Assignments`}>
-                          <span className="badge" style={{ background: 'var(--bg)', color: 'var(--text-primary)' }}>{assignments.length}A</span>
-                        </div>
-                        {submitted > 0 && <span className="badge badge--teal" title={`${submitted} Submitted`}>{submitted}S</span>}
-                        {graded > 0 && <span className="badge badge--green" title={`${graded} Graded`}>{graded}G</span>}
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                        <button
-                          className="btn btn--ghost btn--sm"
-                          onClick={() => router.push(`/admin/assign?studentId=${s.id}`)}
-                          style={{ gap: 6 }}
-                        >
-                          <UserPlus size={14} /> Assign
-                        </button>
-                        <button
-                          className="btn btn--ghost btn--sm"
-                          onClick={() => router.push(`/admin/submissions?studentId=${s.id}`)}
-                        >
-                          Submissions
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="students-list">
+          {filtered.map(student => (
+            <StudentCard
+              key={student.id}
+              student={student}
+              unassigningId={unassigningId}
+              onAssign={() => router.push(`/admin/assign?studentId=${student.id}`)}
+              onSubmissions={() => router.push(`/admin/submissions?studentId=${student.id}`)}
+              onUnassign={assignment => handleUnassign(student, assignment)}
+            />
+          ))}
         </div>
       )}
 
-      <p style={{ marginTop: 20, fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+      <p className="students-count">
         <UserCheck size={14} />
-        {filtered.length} student{filtered.length !== 1 ? 's' : ''} shown
-        {search ? ` matching "${search}"` : ''}
+        {filtered.length} of {students.length} student{students.length !== 1 ? 's' : ''} shown
       </p>
-      <style jsx>{` @keyframes spin { to { transform: rotate(360deg); } } `}</style>
+
+      <style jsx>{`
+        .students-page {
+          max-width: 1180px;
+        }
+
+        .students-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 20px;
+          margin-bottom: 22px;
+        }
+
+        .students-stats {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+          margin-bottom: 18px;
+        }
+
+        .students-toolbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 18px;
+        }
+
+        .students-search {
+          position: relative;
+          flex: 1;
+          min-width: 260px;
+          max-width: 480px;
+        }
+
+        .students-search svg {
+          position: absolute;
+          left: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--text-muted);
+        }
+
+        .students-search input {
+          width: 100%;
+          height: 44px;
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          background: var(--surface);
+          color: var(--text-primary);
+          font: inherit;
+          outline: none;
+          padding: 0 42px;
+        }
+
+        .students-search input:focus {
+          border-color: var(--teal);
+          box-shadow: 0 0 0 3px rgba(13, 115, 119, 0.12);
+        }
+
+        .students-search button {
+          position: absolute;
+          right: 8px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 28px;
+          height: 28px;
+          border: none;
+          border-radius: 6px;
+          background: transparent;
+          color: var(--text-muted);
+          cursor: pointer;
+        }
+
+        .students-filters {
+          display: flex;
+          gap: 6px;
+          padding: 4px;
+          border: 1px solid var(--border-light);
+          border-radius: 10px;
+          background: #e9eef2;
+        }
+
+        .students-filters button {
+          border: none;
+          border-radius: 8px;
+          background: transparent;
+          color: var(--text-secondary);
+          cursor: pointer;
+          font: inherit;
+          font-size: 13px;
+          font-weight: 700;
+          padding: 8px 12px;
+          white-space: nowrap;
+        }
+
+        .students-filters button.active {
+          background: var(--surface);
+          color: var(--teal-dark);
+          box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+        }
+
+        .students-list {
+          display: grid;
+          gap: 12px;
+        }
+
+        .students-loading {
+          padding: 72px;
+          text-align: center;
+        }
+
+        .students-loading div {
+          width: 32px;
+          height: 32px;
+          border: 2px solid var(--teal-light);
+          border-top-color: var(--teal);
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 16px;
+        }
+
+        .students-loading p,
+        .students-count {
+          color: var(--text-muted);
+          font-size: 13px;
+        }
+
+        .students-error {
+          padding: 28px;
+          border: 1px solid #fee2e2;
+          background: #fef2f2;
+          color: #991b1b;
+          display: flex;
+          gap: 12px;
+          align-items: center;
+        }
+
+        .students-error strong {
+          display: block;
+        }
+
+        .students-error span {
+          display: block;
+          font-size: 14px;
+          opacity: 0.9;
+        }
+
+        .students-empty {
+          text-align: center;
+          padding: 72px 24px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .students-empty div {
+          width: 76px;
+          height: 76px;
+          border-radius: 50%;
+          background: var(--bg);
+          color: var(--text-muted);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .students-empty h2 {
+          font-size: 20px;
+          margin: 0;
+        }
+
+        .students-empty p {
+          color: var(--text-muted);
+          margin: 0;
+        }
+
+        .students-count {
+          margin-top: 18px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        @media (max-width: 980px) {
+          .students-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .students-toolbar {
+            align-items: stretch;
+            flex-direction: column;
+          }
+
+          .students-search {
+            max-width: none;
+          }
+
+          .students-filters {
+            overflow-x: auto;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .students-header {
+            flex-direction: column;
+          }
+
+          .students-header :global(.btn) {
+            width: 100%;
+          }
+
+          .students-stats {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </div>
   );
 }
 
+function SummaryCard({ label, value, icon: Icon }) {
+  return (
+    <div className="student-summary-card">
+      <div>
+        <span>{label}</span>
+        <strong>{value}</strong>
+      </div>
+      <Icon size={20} />
+
+      <style jsx>{`
+        .student-summary-card {
+          min-height: 86px;
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          background: var(--surface);
+          padding: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .student-summary-card span {
+          display: block;
+          color: var(--text-muted);
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .student-summary-card strong {
+          display: block;
+          color: var(--text-primary);
+          font-size: 26px;
+          line-height: 1.1;
+          margin-top: 4px;
+        }
+
+        .student-summary-card svg {
+          color: var(--teal);
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function StudentCard({ student, unassigningId, onAssign, onSubmissions, onUnassign }) {
+  const assignments = student.test_assignments ?? [];
+  const submissions = assignments.flatMap(assignment => assignment.test_submissions ?? []);
+  const submitted = submissions.filter(submission => submission.status === 'submitted').length;
+  const graded = submissions.filter(submission => submission.status === 'graded').length;
+  const displayName = student.full_name || 'Unnamed Student';
+  const initial = displayName[0]?.toUpperCase() || '?';
+
+  return (
+    <article className="student-card">
+      <div className="student-main">
+        <div className="student-avatar">{initial}</div>
+        <div className="student-identity">
+          <h2>{displayName}</h2>
+          <p><Mail size={13} /> {student.email}</p>
+          <p><Calendar size={13} /> Joined {formatDate(student.created_at)}</p>
+        </div>
+      </div>
+
+      <div className="student-progress" aria-label="Student progress">
+        <Metric value={assignments.length} label="Assigned" />
+        <Metric value={submitted} label="Submitted" tone={submitted > 0 ? 'teal' : undefined} />
+        <Metric value={graded} label="Graded" tone={graded > 0 ? 'green' : undefined} />
+      </div>
+
+      <div className="student-tests">
+        <div className="student-tests__header">
+          <span>Assigned Tests</span>
+          {assignments.length === 0 && <em>No tests yet</em>}
+        </div>
+        {assignments.length > 0 && (
+          <div className="student-test-list">
+            {assignments.slice(0, 3).map(assignment => {
+              const title = assignment.tests?.title ?? 'Untitled Test';
+              const submissionCount = assignment.test_submissions?.length ?? 0;
+
+              return (
+                <div className="student-test-pill" key={assignment.id}>
+                  <span title={title}>
+                    {title}
+                    {submissionCount > 0 && <small>{submissionCount} sub{submissionCount !== 1 ? 's' : ''}</small>}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onUnassign(assignment)}
+                    disabled={unassigningId === assignment.id}
+                    aria-label={`Unassign ${title}`}
+                    title={`Unassign ${title}`}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              );
+            })}
+            {assignments.length > 3 && (
+              <div className="student-test-more">+{assignments.length - 3} more assigned</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="student-actions">
+        <button className="btn btn--primary btn--sm" onClick={onAssign}>
+          <UserPlus size={14} />
+          Assign
+        </button>
+        <button className="btn btn--ghost btn--sm" onClick={onSubmissions}>
+          Submissions
+        </button>
+      </div>
+
+      <style jsx>{`
+        .student-card {
+          display: grid;
+          grid-template-columns: minmax(260px, 1.1fr) minmax(180px, 0.7fr) minmax(280px, 1fr) auto;
+          gap: 18px;
+          align-items: center;
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          background: var(--surface);
+          padding: 18px;
+        }
+
+        .student-main {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          min-width: 0;
+        }
+
+        .student-avatar {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background: var(--teal-light);
+          color: var(--teal-dark);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          font-weight: 800;
+          flex-shrink: 0;
+        }
+
+        .student-identity {
+          min-width: 0;
+        }
+
+        .student-identity h2 {
+          margin: 0 0 4px;
+          color: var(--text-primary);
+          font-size: 16px;
+          line-height: 1.25;
+        }
+
+        .student-identity p {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          min-width: 0;
+          margin: 0;
+          color: var(--text-secondary);
+          font-size: 13px;
+        }
+
+        .student-identity p:first-of-type {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .student-identity svg {
+          color: var(--text-muted);
+          flex-shrink: 0;
+        }
+
+        .student-progress {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+        }
+
+        .student-tests {
+          min-width: 0;
+        }
+
+        .student-tests__header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 8px;
+        }
+
+        .student-tests__header span {
+          color: var(--text-secondary);
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .student-tests__header em {
+          color: var(--text-muted);
+          font-size: 13px;
+          font-style: normal;
+        }
+
+        .student-test-list {
+          display: grid;
+          gap: 6px;
+        }
+
+        .student-test-pill {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 28px;
+          align-items: center;
+          gap: 8px;
+          min-height: 36px;
+          border: 1px solid var(--border-light);
+          border-radius: 8px;
+          background: #f8fafc;
+          padding: 4px 4px 4px 10px;
+        }
+
+        .student-test-pill span {
+          color: var(--text-primary);
+          font-size: 13px;
+          font-weight: 700;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .student-test-pill small {
+          color: var(--text-muted);
+          font-size: 12px;
+          font-weight: 600;
+          margin-left: 6px;
+        }
+
+        .student-test-pill button {
+          width: 28px;
+          height: 28px;
+          border: 1px solid var(--border);
+          border-radius: 7px;
+          background: var(--surface);
+          color: #991b1b;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .student-test-pill button:disabled {
+          cursor: wait;
+          opacity: 0.5;
+        }
+
+        .student-test-more {
+          color: var(--text-muted);
+          font-size: 12px;
+          font-weight: 700;
+          padding-left: 2px;
+        }
+
+        .student-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 8px;
+        }
+
+        @media (max-width: 1120px) {
+          .student-card {
+            grid-template-columns: minmax(260px, 1fr) minmax(260px, 1fr);
+          }
+
+          .student-actions {
+            justify-content: flex-start;
+          }
+        }
+
+        @media (max-width: 760px) {
+          .student-card {
+            grid-template-columns: 1fr;
+          }
+
+          .student-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+      `}</style>
+    </article>
+  );
+}
+
+function Metric({ value, label, tone }) {
+  return (
+    <div className={`student-metric ${tone ? `student-metric--${tone}` : ''}`}>
+      <strong>{value}</strong>
+      <span>{label}</span>
+
+      <style jsx>{`
+        .student-metric {
+          min-height: 48px;
+          border-radius: 8px;
+          background: var(--bg);
+          padding: 8px;
+        }
+
+        .student-metric strong {
+          display: block;
+          color: var(--text-primary);
+          font-size: 16px;
+          line-height: 1;
+        }
+
+        .student-metric span {
+          display: block;
+          color: var(--text-muted);
+          font-size: 11px;
+          font-weight: 700;
+          margin-top: 5px;
+        }
+
+        .student-metric--teal {
+          background: var(--teal-light);
+        }
+
+        .student-metric--teal strong,
+        .student-metric--teal span {
+          color: var(--teal-dark);
+        }
+
+        .student-metric--green {
+          background: var(--success-bg);
+        }
+
+        .student-metric--green strong,
+        .student-metric--green span {
+          color: var(--success);
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function formatDate(value) {
+  if (!value) return '-';
+  return new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}

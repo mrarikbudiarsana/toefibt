@@ -1,20 +1,19 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { 
   ClipboardList, 
-  Users, 
   Calendar, 
   CheckSquare, 
   UserPlus, 
   Clock, 
   AlertCircle, 
-  CheckCircle2 
+  CheckCircle2,
+  Search,
+  X
 } from 'lucide-react';
 
 export default function AssignPage() {
-  const router = useRouter();
   const [tests, setTests] = useState([]);
   const [students, setStudents] = useState([]);
   const [selectedTest, setSelectedTest] = useState('');
@@ -24,6 +23,21 @@ export default function AssignPage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [studentSearch, setStudentSearch] = useState('');
+
+  const selectedStudentSet = useMemo(() => new Set(selectedStudents), [selectedStudents]);
+  const normalizedStudentSearch = studentSearch.trim().toLowerCase();
+  const filteredStudents = useMemo(() => {
+    if (!normalizedStudentSearch) return students;
+
+    return students.filter(student => {
+      const name = student.full_name ?? '';
+      const email = student.email ?? '';
+      return `${name} ${email}`.toLowerCase().includes(normalizedStudentSearch);
+    });
+  }, [students, normalizedStudentSearch]);
+  const visibleSelectedCount = filteredStudents.filter(student => selectedStudentSet.has(student.id)).length;
+  const allVisibleSelected = filteredStudents.length > 0 && visibleSelectedCount === filteredStudents.length;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -47,6 +61,22 @@ export default function AssignPage() {
     setSelectedStudents(prev =>
       prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
     );
+  }
+
+  function toggleVisibleStudents() {
+    const visibleIds = filteredStudents.map(student => student.id);
+
+    setSelectedStudents(prev => {
+      if (allVisibleSelected) {
+        return prev.filter(id => !visibleIds.includes(id));
+      }
+
+      return Array.from(new Set([...prev, ...visibleIds]));
+    });
+  }
+
+  function clearSelectedStudents() {
+    setSelectedStudents([]);
   }
 
   async function handleAssign() {
@@ -78,7 +108,7 @@ export default function AssignPage() {
     <div className="dashboard">
       <div className="page-header" style={{ marginBottom: 32 }}>
         <h1 className="page-title">Assign Test</h1>
-        <p className="page-subtitle">Assign a TOEFL iBT mock test to one or more students.</p>
+        <p className="page-subtitle">Choose a test, find the right students, and assign it in one batch.</p>
       </div>
 
       {error && (
@@ -100,7 +130,7 @@ export default function AssignPage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+      <div className="assign-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
         {/* Left: Test + dates */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div className="card glass-card" style={{ padding: 24 }}>
@@ -146,18 +176,25 @@ export default function AssignPage() {
 
         {/* Right: Student selection */}
         <div className="card glass-card" style={{ padding: 24, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--bg)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>3</div>
-              <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Select Students</h2>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Select Students</h2>
+                <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: 12 }}>
+                  {selectedStudents.length} selected from {students.length} student{students.length !== 1 ? 's' : ''}
+                </p>
+              </div>
             </div>
-            <button
-              className="btn btn--ghost btn--sm"
-              onClick={() => setSelectedStudents(prev => prev.length === students.length ? [] : students.map(s => s.id))}
-              style={{ borderRadius: 8, border: 'none', background: 'var(--bg)' }}
-            >
-              {selectedStudents.length === students.length ? 'Deselect All' : 'Select All'}
-            </button>
+            {selectedStudents.length > 0 && (
+              <button
+                className="btn btn--ghost btn--sm"
+                onClick={clearSelectedStudents}
+                style={{ borderRadius: 8, border: 'none', background: 'var(--bg)' }}
+              >
+                Clear
+              </button>
+            )}
           </div>
 
           {students.length === 0 ? (
@@ -165,42 +202,168 @@ export default function AssignPage() {
               <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>No students found.</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 440, overflowY: 'auto', paddingRight: 8 }}>
-              {students.map(s => {
-                const sel = selectedStudents.includes(s.id);
-                return (
-                  <label
-                    key={s.id}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 12, padding: '12px',
-                      borderRadius: 12, cursor: 'pointer',
-                      background: sel ? 'var(--teal-light)' : 'var(--bg)',
-                      border: `1px solid ${sel ? 'var(--teal)' : 'transparent'}`,
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                      <input
-                        type="checkbox"
-                        checked={sel}
-                        onChange={() => toggleStudent(s.id)}
-                        style={{ width: 18, height: 18, accentColor: 'var(--teal)', cursor: 'pointer' }}
-                      />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: 14, color: sel ? 'var(--teal-dark)' : 'var(--text-primary)' }}>
-                        {s.full_name ?? 'Unnamed Student'}
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.email}</div>
-                    </div>
-                    {sel && <CheckSquare size={16} style={{ color: 'var(--teal)' }} />}
-                  </label>
-                );
-              })}
-            </div>
+            <>
+              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    className="input"
+                    value={studentSearch}
+                    onChange={event => setStudentSearch(event.target.value)}
+                    placeholder="Search by name or email"
+                    style={{ borderRadius: 10, paddingLeft: 38, paddingRight: studentSearch ? 38 : 14 }}
+                  />
+                  {studentSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setStudentSearch('')}
+                      aria-label="Clear search"
+                      style={{
+                        position: 'absolute',
+                        right: 8,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: 28,
+                        height: 28,
+                        border: 'none',
+                        borderRadius: 6,
+                        background: 'transparent',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+                <button
+                  className="btn btn--ghost btn--sm"
+                  onClick={toggleVisibleStudents}
+                  disabled={filteredStudents.length === 0}
+                  style={{ borderRadius: 10 }}
+                >
+                  {allVisibleSelected ? 'Deselect Visible' : 'Select Visible'}
+                </button>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 12,
+                padding: '8px 2px 12px',
+                color: 'var(--text-muted)',
+                fontSize: 12,
+              }}>
+                <span>
+                  Showing {filteredStudents.length} of {students.length}
+                </span>
+                {normalizedStudentSearch && (
+                  <span>
+                    {visibleSelectedCount} selected in results
+                  </span>
+                )}
+              </div>
+
+              {filteredStudents.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 16px', border: '2px dashed var(--border)', borderRadius: 12 }}>
+                  <p style={{ color: 'var(--text-secondary)', fontWeight: 700, fontSize: 14 }}>No matching students</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Try a different name or email.</p>
+                </div>
+              ) : (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr',
+                  gap: 6,
+                  maxHeight: 480,
+                  overflowY: 'auto',
+                  paddingRight: 8,
+                }}>
+                  {filteredStudents.map(s => {
+                    const sel = selectedStudentSet.has(s.id);
+                    const displayName = s.full_name || 'Unnamed Student';
+
+                    return (
+                      <label
+                        key={s.id}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '24px minmax(0, 1fr) 20px',
+                          alignItems: 'center',
+                          gap: 12,
+                          minHeight: 64,
+                          padding: '10px 12px',
+                          borderRadius: 10,
+                          cursor: 'pointer',
+                          background: sel ? 'var(--teal-light)' : '#f8fafc',
+                          border: `1px solid ${sel ? 'var(--teal)' : 'var(--border-light)'}`,
+                          transition: 'background 0.15s, border-color 0.15s',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={sel}
+                          onChange={() => toggleStudent(s.id)}
+                          style={{ width: 18, height: 18, accentColor: 'var(--teal)', cursor: 'pointer' }}
+                        />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{
+                            fontWeight: 700,
+                            fontSize: 14,
+                            color: sel ? 'var(--teal-dark)' : 'var(--text-primary)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {displayName}
+                          </div>
+                          <div style={{
+                            fontSize: 12,
+                            color: 'var(--text-muted)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {s.email}
+                          </div>
+                        </div>
+                        {sel ? <CheckSquare size={16} style={{ color: 'var(--teal)' }} /> : <span />}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div style={{
+                marginTop: 14,
+                padding: '10px 12px',
+                borderRadius: 10,
+                background: selectedStudents.length > 0 ? 'var(--teal-light)' : 'var(--bg)',
+                color: selectedStudents.length > 0 ? 'var(--teal-dark)' : 'var(--text-secondary)',
+                fontSize: 13,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
+              }}>
+                <span>{selectedStudents.length} student{selectedStudents.length !== 1 ? 's' : ''} selected</span>
+                {selectedStudents.length > 0 && (
+                  <span>{filteredStudents.length !== students.length ? `${visibleSelectedCount} visible` : 'Ready to assign'}</span>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
+
+      <style jsx>{`
+        @media (max-width: 900px) {
+          .assign-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
