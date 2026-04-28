@@ -56,7 +56,7 @@ export default function ResultsPage() {
   const overallBand = hasFullScore
     ? (allBands.reduce((a, b) => a + b, 0) / allBands.length).toFixed(1)
     : null;
-  const overallCEFR = overallBand ? getCEFR(Math.round(parseFloat(overallBand))) : null;
+  const overallCEFR = overallBand ? getCEFR(overallBand) : null;
 
   const sections = ['reading', 'listening', 'writing', 'speaking'];
 
@@ -119,12 +119,19 @@ export default function ResultsPage() {
         {/* Section scores */}
         <div className="score-grid">
           {sections.map(sec => {
+            const isGraded = submission.status === 'graded';
+            const isRL = sec === 'reading' || sec === 'listening';
+            
+            // Skip Speaking/Writing if not graded
+            if (!isGraded && !isRL) return null;
+
             const band = bands[sec];
             if (band == null) return null;
+            
             const cefr = getCEFR(band);
             const rawData = raw[sec];
             const aiData = ai[sec];
-            const isUnofficial = submission.status !== 'graded' && (sec === 'reading' || sec === 'listening');
+            const isUnofficial = !isGraded && isRL;
 
             return (
               <div key={sec} className="score-card">
