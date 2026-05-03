@@ -172,6 +172,9 @@ function LoginForm({ router }) {
       const { error: resendErr } = await supabase.auth.resend({
         type: 'signup',
         email: normalizedEmail,
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
       });
       if (resendErr) throw resendErr;
       setNotice(`Confirmation email resent to ${normalizedEmail}.`);
@@ -302,6 +305,7 @@ function SignupForm({ onSuccess }) {
         password,
         options: {
           data: { name, role: 'student' },
+          emailRedirectTo: window.location.origin,
         },
       });
       if (authErr) throw authErr;
