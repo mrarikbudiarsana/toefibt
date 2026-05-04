@@ -78,7 +78,7 @@ export default function TakeInterviewIntro({ contextText = '', introAudioUrl = '
       />
 
       <div style={{ width: '100%', maxWidth: 760, border: '2px solid #111', background: '#fff', padding: '18px 16px 20px' }}>
-        <div style={{ fontSize: 38, fontWeight: 700, color: '#111', textAlign: 'center', lineHeight: 1.25, marginBottom: 12 }}>
+        <div style={{ fontSize: 24, fontWeight: 700, color: '#111', textAlign: 'center', lineHeight: 1.4, marginBottom: 20 }}>
           {contextText || 'The researcher will ask you some questions.'}
         </div>
 
