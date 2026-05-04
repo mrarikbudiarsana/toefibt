@@ -907,6 +907,7 @@ export default function TestPage() {
       const customInstruction = (options && options.length > 0 && options[0]) ? options[0] : 'Fill in the missing letters in the paragraph.';
       return (
         <CTestRenderer
+          key={qId}
           qId={qId}
           passage={prompt}
           instruction={customInstruction}
@@ -940,15 +941,16 @@ export default function TestPage() {
       const passageEntry = passages[passageIdx] || passages[0] || '';
 
       if (task_type === 'read_daily_life') {
-        return <ReadDailyLifeRenderer passage={passageEntry} question={prompt} options={options} selected={selected} onSelect={onSelect} questionNumber={questionNumber} totalQuestions={totalQuestions} />;
+        return <ReadDailyLifeRenderer key={qId} passage={passageEntry} question={prompt} options={options} selected={selected} onSelect={onSelect} questionNumber={questionNumber} totalQuestions={totalQuestions} />;
       }
-      return <ReadAcademicRenderer passage={toPassageText(passageEntry)} question={prompt} options={options} selected={selected} onSelect={onSelect} questionNumber={questionNumber} totalQuestions={totalQuestions} />;
+      return <ReadAcademicRenderer key={qId} passage={toPassageText(passageEntry)} question={prompt} options={options} selected={selected} onSelect={onSelect} questionNumber={questionNumber} totalQuestions={totalQuestions} />;
     }
 
     // Listening
     if (isConversationFlowQuestion(currentQuestion)) {
       return (
         <ListenConversationQuestionRenderer
+          key={qId}
           speakerPhotoUrl={speaker_photo_url}
           question={prompt}
           options={options}
@@ -961,6 +963,7 @@ export default function TestPage() {
       const key = qId;
       return (
         <ListenChooseRenderer
+          key={qId}
           audioUrl={audio_url}
           speakerPhotoUrl={speaker_photo_url}
           options={options}
@@ -976,6 +979,7 @@ export default function TestPage() {
       const tiles = tiles_data ? (typeof tiles_data === 'string' ? JSON.parse(tiles_data) : tiles_data) : [];
       return (
         <BuildSentenceRenderer
+          key={qId}
           prompt={prompt}
           speaker1PhotoUrl={speaker_photo_url}
           speaker2PhotoUrl={audio_url}
@@ -991,6 +995,7 @@ export default function TestPage() {
     if (task_type === 'write_email') {
       return (
         <WriteEmailRenderer
+          key={qId}
           prompt={prompt}
           options={options}
           value={writingAnswers[qId] ?? ''}
@@ -1003,6 +1008,7 @@ export default function TestPage() {
     if (task_type === 'write_discussion' || task_type === 'academic_discussion') {
       return (
         <WriteDiscussionRenderer
+          key={qId}
           prompt={prompt}
           options={options}
           speakerPhotoUrl={speaker_photo_url}
@@ -1018,6 +1024,7 @@ export default function TestPage() {
     if (task_type === 'listen_repeat') {
       return (
         <ListenRepeatRenderer
+          key={qId}
           audioUrl={audio_url}
           speakerPhotoUrl={speaker_photo_url}
           prompt={prompt}
@@ -1030,6 +1037,7 @@ export default function TestPage() {
     if (task_type === 'take_interview') {
       return (
         <TakeInterviewRenderer
+          key={qId}
           question={prompt}
           audioUrl={audio_url}
           interviewerPhotoUrl={speaker_photo_url}
