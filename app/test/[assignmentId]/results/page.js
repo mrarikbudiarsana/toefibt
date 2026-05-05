@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { getCEFR, getBand120Range } from '@/lib/scoring';
+import { getCEFR, getBand120Range, getOverallBand } from '@/lib/scoring';
 
 const SECTION_ICONS = { reading: 'R', listening: 'L', writing: 'W', speaking: 'S' };
 const SECTION_LABELS = { reading: 'Reading', listening: 'Listening', writing: 'Writing', speaking: 'Speaking' };
@@ -54,7 +54,7 @@ export default function ResultsPage() {
   const allBands = [rBand, lBand, wBand, sBand].filter(b => b != null);
   const hasFullScore = submission.status === 'graded' && [rBand, lBand, wBand, sBand].every(b => b != null);
   const overallBand = hasFullScore
-    ? (allBands.reduce((a, b) => a + b, 0) / allBands.length).toFixed(1)
+    ? getOverallBand(rBand, lBand, wBand, sBand).toFixed(1)
     : null;
   const overallCEFR = overallBand ? getCEFR(overallBand) : null;
 
