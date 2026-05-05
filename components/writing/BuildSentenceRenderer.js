@@ -170,7 +170,9 @@ export default function BuildSentenceRenderer({ prompt, speaker1PhotoUrl, speake
 
   function getSlotLabel(word, slotIndex) {
     if (!word) return '';
-    if (slotIndex === 0) return upperInitial(lowerInitial(word));
+    // Capitalize only if it's the first slot AND there's no preceding text in the template
+    const isAtStart = slotIndex === 0 && (!templateParts[0] || !templateParts[0].trim());
+    if (isAtStart) return upperInitial(lowerInitial(word));
     return getTileLabel(word);
   }
 

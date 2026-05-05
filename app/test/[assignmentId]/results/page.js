@@ -63,7 +63,7 @@ export default function ResultsPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       {/* Top bar */}
-      <header style={{
+      <header className="no-print" style={{
         background: 'var(--teal)', color: '#fff',
         padding: '0 32px', height: 56,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -214,7 +214,7 @@ export default function ResultsPage() {
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+        <div className="no-print" style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 32 }}>
           <button className="btn btn--primary" onClick={() => router.push('/dashboard')}>
             Back to My Tests
           </button>
@@ -223,6 +223,64 @@ export default function ResultsPage() {
           </button>
         </div>
       </div>
+
+      <style jsx global>{`
+        @media print {
+          header, .no-print, .btn, .ets-navbar__btn {
+            display: none !important;
+          }
+          body {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            -webkit-print-color-adjust: exact;
+          }
+          .score-report {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+          }
+          .score-report__header {
+            margin-top: 0 !important;
+            margin-bottom: 15px !important;
+            padding-top: 0 !important;
+          }
+          .score-report__title {
+            font-size: 24pt !important;
+            margin-top: 0 !important;
+          }
+          .score-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 15px !important;
+            margin-bottom: 15px !important;
+          }
+          .score-card {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            border: 1px solid #e2e8f0 !important;
+            padding: 15px !important;
+          }
+          .card {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            border: 1px solid #e2e8f0 !important;
+            padding: 15px !important;
+            margin-bottom: 15px !important;
+          }
+          .table {
+            font-size: 11pt !important;
+          }
+          .table th, .table td {
+            padding: 6px 8px !important;
+          }
+          @page {
+            size: A4;
+            margin: 15mm 15mm 15mm 15mm;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   Users, 
   LogOut,
   User,
+  Activity,
 } from 'lucide-react';
 
 export default function AdminLayout({ children }) {
@@ -52,6 +53,7 @@ export default function AdminLayout({ children }) {
     { label: 'Tests', href: '/admin/tests', icon: BookOpen },
     { label: 'Assign', href: '/admin/assign', icon: UserPlus },
     { label: 'Submissions', href: '/admin/submissions', icon: FileCheck },
+    { label: 'Monitor', href: '/admin/monitor', icon: Activity },
     { label: 'Students', href: '/admin/students', icon: Users },
   ];
 

@@ -108,6 +108,8 @@ export default function TestPage() {
   const [playedInterviewIntroGroups, setPlayedInterviewIntroGroups] = useState({});
   const [pendingInterviewIntro, setPendingInterviewIntro] = useState(null);
   const [writingCountdown, setWritingCountdown] = useState(null);
+  const [terminated, setTerminated] = useState(false);
+  const [hasRestored, setHasRestored] = useState(false);
   const writingTimerRef = useRef(null);
 
   const section = SECTION_ORDER[sectionIdx];
@@ -129,13 +131,26 @@ export default function TestPage() {
   const [writingTaskTimerKey, setWritingTaskTimerKey] = useState(null);
   const draftStorageKey = assignmentId ? `toefl-test-draft:${assignmentId}` : null;
 
+  // Local Draft Restoration - Runs once testData is available
   useEffect(() => {
-    if (!draftStorageKey || typeof window === 'undefined') return;
+    if (!draftStorageKey || !testData || hasRestored || typeof window === 'undefined') return;
 
     try {
       const rawDraft = window.localStorage.getItem(draftStorageKey);
-      if (!rawDraft) return;
+      if (!rawDraft) {
+        setHasRestored(true);
+        return;
+      }
       const draft = JSON.parse(rawDraft);
+      
+      // Restore navigation state
+      if (typeof draft.sectionIdx === 'number') setSectionIdx(draft.sectionIdx);
+      if (draft.screen) setScreen(draft.screen);
+      if (draft.currentModule) setCurrentModule(draft.currentModule);
+      if (typeof draft.questionIdx === 'number') setQuestionIdx(draft.questionIdx);
+      if (typeof draft.timeRemaining === 'number') setTimeRemaining(draft.timeRemaining);
+      
+      // Restore answers
       if (draft.answers && typeof draft.answers === 'object') {
         answersRef.current = draft.answers;
         setAnswers(draft.answers);
@@ -148,10 +163,23 @@ export default function TestPage() {
         mstPathsRef.current = draft.mstPaths;
         setMstPaths(draft.mstPaths);
       }
+      if (draft.module1Answers && typeof draft.module1Answers === 'object') {
+        setModule1Answers(draft.module1Answers);
+      }
+
+      // Populate questions for the restored module
+      const restoredSection = SECTION_ORDER[draft.sectionIdx ?? 0];
+      const restoredModule = draft.currentModule ?? 'module1';
+      const qs = loadModuleQuestions(restoredSection, restoredModule);
+      setQuestions(qs);
+
+      setHasRestored(true);
+      console.log('Restored test draft from localStorage');
     } catch (err) {
       console.warn('Unable to restore local test draft:', err);
+      setHasRestored(true);
     }
-  }, [draftStorageKey]);
+  }, [draftStorageKey, testData, hasRestored]);
 
   function persistDraft(next = {}) {
     if (!draftStorageKey || typeof window === 'undefined') return;
@@ -160,6 +188,12 @@ export default function TestPage() {
       answers: next.answers ?? answersRef.current,
       writingAnswers: next.writingAnswers ?? writingAnswersRef.current,
       mstPaths: next.mstPaths ?? mstPathsRef.current,
+      sectionIdx: next.sectionIdx ?? sectionIdx,
+      currentModule: next.currentModule ?? currentModule,
+      questionIdx: next.questionIdx ?? questionIdx,
+      screen: next.screen ?? screen,
+      timeRemaining: next.timeRemaining ?? timeRemaining,
+      module1Answers: next.module1Answers ?? module1Answers,
       updatedAt: new Date().toISOString(),
     };
 
@@ -216,6 +250,62 @@ export default function TestPage() {
       element.volume = Math.max(0, Math.min(1, volume));
     });
   }, [volume, section, screen, questionIdx]);
+
+  // Periodic persist of time and heartbeat to DB
+  useEffect(() => {
+    if (!assignmentId || screen === 'intro' || screen === 'done' || terminated) return;
+    
+    const interval = setInterval(async () => {
+      persistDraft();
+
+      // Heartbeat to DB
+      const { error: heartbeatError } = await supabase
+        .from('test_assignments')
+        .update({
+          last_active_at: new Date().toISOString(),
+          status: 'in_progress',
+          progress_json: {
+            section: sectionLabel,
+            module: currentModule,
+            questionIdx: questionIdx + 1,
+            screen
+          }
+        })
+        .eq('id', assignmentId);
+        
+      if (heartbeatError) console.warn('Heartbeat failed:', heartbeatError);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [assignmentId, sectionLabel, currentModule, questionIdx, screen, timeRemaining, terminated]);
+
+  // Realtime Listener for forced termination
+  useEffect(() => {
+    if (!assignmentId) return;
+
+    const channel = supabase
+      .channel(`assignment_status_${assignmentId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'test_assignments',
+          filter: `id=eq.${assignmentId}`,
+        },
+        (payload) => {
+          if (payload.new.status === 'terminated') {
+            setTerminated(true);
+            setTimerRunning(false);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [assignmentId]);
 
   function clearListenChooseTimer() {
     if (listenChooseTimerRef.current) {
@@ -595,9 +685,16 @@ export default function TestPage() {
     setTimerRunning(false);
   }
 
-  function beginModule() {
+  async function beginModule() {
     setScreen('question');
     setTimerRunning(true);
+    
+    if (assignmentId) {
+      await supabase
+        .from('test_assignments')
+        .update({ status: 'in_progress', last_active_at: new Date().toISOString() })
+        .eq('id', assignmentId);
+    }
   }
 
   //  Navigate questions 
@@ -1057,6 +1154,32 @@ export default function TestPage() {
   //  Early returns 
   if (loading) return <FullScreenMessage>Loading your test</FullScreenMessage>;
   if (error) return <FullScreenMessage error>{error}</FullScreenMessage>;
+
+  if (terminated) {
+    return (
+      <div className="premium-bg" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div className="glass-card" style={{ maxWidth: 520, width: '100%', textAlign: 'center', padding: '40px 32px' }}>
+          <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'center' }}>
+            <div style={{ padding: 16, background: 'rgba(239, 68, 68, 0.1)', borderRadius: '50%' }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+            </div>
+          </div>
+          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 12, color: 'var(--deep-navy)' }}>Session Ended</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 16, lineHeight: 1.6, marginBottom: 24 }}>
+            This examination session has been terminated by the administrator. 
+            If you believe this is an error, please contact your supervisor immediately.
+          </p>
+          <button className="btn-premium" style={{ width: '100%' }} onClick={() => router.push('/dashboard')}>
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!testData?.tests) return <FullScreenMessage>Test not found.</FullScreenMessage>;
 
